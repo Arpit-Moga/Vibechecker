@@ -7,7 +7,7 @@ See [architecture.md] for all shared definitions, standards, and specifications.
 ## Step 1: Deep Dive into FastMCP
 
 ### 1.1. Study FastMCP Documentation and Example Servers
-- Read [FastMCP PyPI](https://pypi.org/project/fastmcp/) and [MCP servers GitHub](https://github.com/modelcontextprotocol/servers) in full.
+- Read FastMCP.md full.
 - Document:
   - How to initialize a FastMCP server (required imports, main entry point, config options).
   - How to define endpoints (`/upload_codebase`, `/trigger_review`, `/get_results`) with exact payloads and error codes as in architecture.md.

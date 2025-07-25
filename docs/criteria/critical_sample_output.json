@@ -1,0 +1,26 @@
+[
+  {
+    "type": "critical",
+    "severity": "high",
+    "description": "SQL injection vulnerability in 'db.py'.",
+    "file": "db.py",
+    "line": 22,
+    "remediation": "Use parameterized queries to prevent injection."
+  },
+  {
+    "type": "critical",
+    "severity": "high",
+    "description": "Unhandled exception in 'main.py' causing crash.",
+    "file": "main.py",
+    "line": 101,
+    "remediation": "Add try/except block and proper error logging."
+  },
+  {
+    "type": "critical",
+    "severity": "high",
+    "description": "Hardcoded password in 'config.py'.",
+    "file": "config.py",
+    "line": 5,
+    "remediation": "Remove hardcoded secret and use environment variable."
+  }
+]
