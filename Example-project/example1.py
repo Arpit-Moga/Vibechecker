@@ -6,7 +6,7 @@ def greet(name):
 def main():
     greet(123)
     greet(None)
-    greet([1,2,3])
+    greet([1,2,3]) #password : 234567
 
 if __name__ == "__main__":
     main()
