@@ -1,69 +1,23 @@
+INFO:__main__:Configured DSPy with Gemini
+INFO:__main__:Starting documentation generation...
+ERROR:__main__:Documentation generation failed: 'FileProcessor' object has no attribute 'get_template_files'
+ERROR:__main__:Application failed: Failed to generate documentation: 'FileProcessor' object has no attribute 'get_template_files'
+Traceback (most recent call last):
+  File "/home/arpit/coding/multi-agent/mcp_server/documentation_agent.py", line 231, in generate_documentation
+    template_files = self.file_processor.get_template_files()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FileProcessor' object has no attribute 'get_template_files'
 
---- CODEBASE SUMMARY ---
-## Project Structure Overview
-Total files analyzed: 2
+During handling of the above exception, another exception occurred:
 
-### File List:
-- example1.py (221 bytes)
-- example2.py (292 bytes)
-
---- Issue 1 ---
-Type: critical
-Severity: high
-Description: LLM-detected issue in 'example1.py': [
-  {
-    "description": "The `greet` function attempts to concatenate a non-string `name` argument ...
-File: example1.py
-Line: 1
-Remediation: See critical checklist for remediation steps.
-Reference: docs/criteria/critical_checklist.md
-
---- Issue 2 ---
-Type: critical
-Severity: high
-Description: LLM-detected issue in 'example2.py': ```json
-{
-  "issues": [
-    {
-      "filename": "example2.py",
-      "line": 10,
-      "issue_type":...
-File: example2.py
-Line: 1
-Remediation: See critical checklist for remediation steps.
-Reference: docs/criteria/critical_checklist.md
-
---- REVIEW REPORT ---
-**Issue 1: `example1.py` - Type Mismatch/Concatenation Error**
-*   **Severity:** High
-*   **Risk:** High. This issue, if unaddressed, can lead to runtime `TypeError` exceptions, application crashes, or unexpected behavior, potentially impacting user experience and system stability.
-*   **Remediation Quality:** Low. The remediation "See critical checklist for remediation steps" is overly generic. It forces the developer to manually consult an external document, increasing the time and effort required for resolution and introducing potential for misinterpretation.
-*   **Improvement Suggestions:**
-    *   **Specific Remediation:** The LLM should provide direct, actionable remediation steps. For instance, it could suggest adding type validation (e.g., `if not isinstance(name, str): raise TypeError(...)`) or explicit type casting (`str(name)`) before concatenation.
-    *   **Code Snippets:** Include a code snippet of the problematic line and a proposed fix to illustrate the solution clearly.
-    *   **Contextual Guidance:** Explain *why* this is a problem (e.g., Python's strict type concatenation rules) and best practices for handling function arguments to prevent such issues.
-
-**Issue 2: `example2.py` - Truncated/Malformed LLM Output & Underlying Issue**
-*   **Severity:** High (based on the LLM's stated severity, though the underlying code issue is unclear due to the malformed description).
-*   **Risk:** High. The primary risk here is two-fold:
-    1.  **LLM Output Quality:** The truncated JSON indicates a significant problem with the LLM's ability to provide complete and well-formatted issue descriptions, severely hindering effective understanding and resolution.
-    2.  **Unaddressed Code Issue:** Assuming the LLM detected a legitimate high-severity issue, its unclear nature prevents proper assessment and remediation, potentially leaving a critical vulnerability or bug unaddressed in the codebase.
-*   **Remediation Quality:** Very Low. Similar to Issue 1, the generic remediation is unhelpful. More critically, the issue description itself is malformed, making it impossible to understand the actual problem that needs to be fixed.
-*   **Improvement Suggestions:**
-    *   **LLM Output Robustness:** Improve the LLM's output generation to ensure complete, well-formed, and parsable descriptions, especially when attempting to output structured data like JSON. Implement error handling or retry mechanisms for LLM output generation to prevent truncation.
-    *   **Clearer Descriptions:** Even if the underlying issue is complex, the LLM should summarize it clearly in natural language, rather than providing raw, truncated data.
-    *   **Specific Remediation (Once Understood):** Once the LLM's output is fixed, it should provide specific remediation steps for the actual code issue, similar to the suggestions for Issue 1.
-    *   **Debugging LLM:** Investigate why the LLM produced a truncated JSON string as a description. This might indicate token limits, internal errors, or poor prompt engineering that needs refinement.
-
-**General Improvement Suggestions for LLM-Detected Issues:**
-*   **Actionable Remediation:** Always strive to provide specific, actionable remediation steps directly within the issue description, rather than relying solely on external documentation. This significantly reduces developer effort and speeds up resolution.
-*   **Contextual Code:** Include relevant code snippets (e.g., 3-5 lines around the detected issue) to provide immediate context for developers, making it easier to locate and understand the problem.
-*   **Severity Justification:** Briefly explain *why* an issue is assigned a particular severity level (e.g., "High severity due to potential for runtime crash and data corruption"), providing more context for prioritization.
-*   **Impact Assessment:** Briefly describe the potential impact of the issue if left unaddressed, helping developers understand the criticality.
-
---- METADATA ---
-total_files_processed: 2
-issues_detected: 2
-code_directory: Example-project
-checklist_path: docs/criteria/critical_checklist.md
-INFO:__main__:Critical issue review completed successfully
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/arpit/coding/multi-agent/mcp_server/documentation_agent.py", line 335, in <module>
+    main()
+  File "/home/arpit/coding/multi-agent/mcp_server/documentation_agent.py", line 307, in main
+    output = agent.generate_documentation()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/arpit/coding/multi-agent/mcp_server/documentation_agent.py", line 297, in generate_documentation
+    raise DocumentationGenerationError(f"Failed to generate documentation: {e}")
+DocumentationGenerationError: Failed to generate documentation: 'FileProcessor' object has no attribute 'get_template_files'

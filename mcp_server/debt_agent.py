@@ -15,62 +15,11 @@ from pydantic import ValidationError
 from mcp_server.models import IssueOutput, AgentReport
 import dspy
 from pathlib import Path
-from enum import Enum
-from pydantic import BaseModel, Field
+from mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class SupportedFileType(str, Enum):
-    PYTHON = ".py"
-
-class Settings:
-    """Settings for agent configuration."""
-    google_api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
-    openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
-    code_directory: str = os.getenv("CODE_DIRECTORY", "Example-project")
-    max_file_size_mb: float = float(os.getenv("MAX_FILE_SIZE_MB", 5.0))
-    max_files_to_process: int = int(os.getenv("MAX_FILES_TO_PROCESS", 100))
-
-class CodeFile(BaseModel):
-    name: str = Field(...)
-    path: str = Field(...)
-    content: str = Field(...)
-    size_bytes: int = Field(...)
-    file_type: SupportedFileType = Field(...)
-
-class FileProcessor:
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        self.supported_extensions = {ext.value for ext in SupportedFileType}
-    def get_code_files(self, code_dir: Path) -> dict:
-        code_files = {}
-        files_processed = 0
-        for file_path in code_dir.rglob("*"):
-            if files_processed >= self.settings.max_files_to_process:
-                break
-            if (file_path.is_file() and file_path.suffix in self.supported_extensions and
-                not self._should_ignore_file(file_path)):
-                file_size = file_path.stat().st_size
-                max_size = self.settings.max_file_size_mb * 1024 * 1024
-                if file_size > max_size:
-                    continue
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                code_file = CodeFile(
-                    name=file_path.name,
-                    path=str(file_path.relative_to(code_dir)),
-                    content=content,
-                    size_bytes=file_size,
-                    file_type=SupportedFileType(file_path.suffix)
-                )
-                code_files[file_path.name] = code_file
-                files_processed += 1
-        return code_files
-    def _should_ignore_file(self, file_path: Path) -> bool:
-        ignore_patterns = {'__pycache__', '.git', '.pytest_cache', 'node_modules', '.venv', 'venv', '.env', 'dist', 'build'}
-        return any(pattern in str(file_path) for pattern in ignore_patterns)
 
 class DebtIssueDetectionSignature(dspy.Signature):
     """DSPy signature for LLM-based technical debt detection."""
@@ -96,7 +45,7 @@ class DebtIssueDetector(dspy.Module):
     def forward(self, code: str, filename: str) -> str:
         # Prompt for technical debt issues only
         prompt = (
-            "You are a senior code reviewer. For every technical debt issue you find, rank and sort it by the real-world impact and maintainability cost. Use severity 'high' for issues that significantly hinder maintainability, scalability, or future development (large functions, duplicated code, poor modularity, hardcoded values, lack of tests, etc.), 'medium' for issues that cause moderate pain (inconsistent naming, unclear logic, missing docstrings), and 'low' for minor style or convention violations. For each issue, include a brief justification for its ranking. Only use type 'debt' for maintainability issues, and 'improvement' for style or best-practice suggestions. If you are unsure about the severity or impact, include the issue and explain your reasoning. Output valid JSON as a list of IssueOutput objects, sorted from highest to lowest impact. Each issue must include: type ('debt' or 'improvement'), severity ('low', 'medium', 'high'), description, file, line, specific actionable suggestion, a relevant code snippet (3-5 lines), and a justification for its ranking. If there are no issues at all, output an empty list."
+            "You are a senior code reviewer. For every technical debt issue you find, rank and sort them by the real-world impact and maintainability cost. Use severity 'high' for issues that significantly hinder maintainability, scalability, or future development (large functions, duplicated code, poor modularity, hardcoded values, lack of tests, etc.), 'medium' for issues that cause moderate pain (inconsistent naming, unclear logic, missing docstrings), and 'low' for minor style or convention violations. For each issue, include a brief justification for its ranking. Only use type 'debt' for maintainability issues, and 'improvement' for style or best-practice suggestions. If you are unsure about the severity or impact, include the issue and explain your reasoning. Output valid JSON as a list of IssueOutput objects, sorted from highest to lowest impact. Each issue must include: type ('debt' or 'improvement'), severity ('low', 'medium', 'high'), description, file, line, specific actionable suggestion, a relevant code snippet (3-5 lines), and a justification for its ranking. If there are no issues at all, output an empty list."
         )
         try:
             result = self.detect(code=code, filename=filename, prompt=prompt)

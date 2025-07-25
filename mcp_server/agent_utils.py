@@ -11,11 +11,30 @@ from pydantic import BaseModel, Field
 class SupportedFileType(str, Enum):
     PYTHON = ".py"
 
+class DocumentationType(str, Enum):
+    """Types of documentation that can be generated."""
+    README = "README.md"
+    CONTRIBUTING = "CONTRIBUTING.md"
+    ONBOARDING = "ONBOARDING.md"
+    RUNBOOK = "RUNBOOK.md"
+    TESTING = "TESTING.md"
+    DEPENDENCY = "DEPENDENCY.md"
+    LICENSE = "LICENSE"
+
+from pydantic import BaseModel, Field
+
+class TemplateFile(BaseModel):
+    """Represents a documentation template."""
+    name: str = Field(..., description="Template name")
+    content: str = Field(..., description="Template content")
+    doc_type: DocumentationType = Field(..., description="Documentation type")
+
 class Settings:
     """Settings for agent configuration."""
     google_api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
     openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
     code_directory: str = os.getenv("CODE_DIRECTORY", "Example-project")
+    template_directory: str = os.getenv("TEMPLATE_DIRECTORY", "templates")
     max_file_size_mb: float = float(os.getenv("MAX_FILE_SIZE_MB", 5.0))
     max_files_to_process: int = int(os.getenv("MAX_FILES_TO_PROCESS", 100))
 
@@ -54,6 +73,23 @@ class FileProcessor:
                 code_files[file_path.name] = code_file
                 files_processed += 1
         return code_files
+    def get_template_files(self) -> dict:
+        """Scan the template directory and return a dict of TemplateFile objects keyed by DocumentationType."""
+        template_dir = Path(self.settings.template_directory)
+        template_files = {}
+        if not template_dir.exists():
+            return template_files
+        for doc_type in DocumentationType:
+            template_path = template_dir / doc_type.value
+            if template_path.exists() and template_path.is_file():
+                with open(template_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                template_files[doc_type] = TemplateFile(
+                    name=doc_type.value,
+                    content=content,
+                    doc_type=doc_type
+                )
+        return template_files
     def _should_ignore_file(self, file_path: Path) -> bool:
         ignore_patterns = {'__pycache__', '.git', '.pytest_cache', 'node_modules', '.venv', 'venv', '.env', 'dist', 'build'}
         return any(pattern in str(file_path) for pattern in ignore_patterns)

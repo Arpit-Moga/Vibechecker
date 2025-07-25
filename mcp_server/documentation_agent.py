@@ -24,10 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class SupportedFileType(str, Enum):
-    """Supported file types for code analysis."""
-    PYTHON = ".py"
-
+from mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
 
 class DocumentationType(str, Enum):
     """Types of documentation that can be generated."""
@@ -38,47 +35,6 @@ class DocumentationType(str, Enum):
     TESTING = "TESTING.md"
     DEPENDENCY = "DEPENDENCY.md"
     LICENSE = "LICENSE"
-
-
-class Settings(BaseSettings):
-    """Application settings with environment variable support."""
-    
-    google_api_key: Optional[str] = Field(None, env="GOOGLE_API_KEY")
-    openai_api_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
-    code_directory: str = Field("Example-project", env="CODE_DIRECTORY")
-    template_directory: str = Field("docs/templates", env="TEMPLATE_DIRECTORY")
-    max_file_size_mb: float = Field(5.0, env="MAX_FILE_SIZE_MB")
-    max_files_to_process: int = Field(100, env="MAX_FILES_TO_PROCESS")
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-
-class CodeFile(BaseModel):
-    """Represents a code file with metadata."""
-    
-    name: str = Field(..., description="Name of the file")
-    path: str = Field(..., description="Relative path to the file")
-    content: str = Field(..., description="File content")
-    size_bytes: int = Field(..., description="File size in bytes")
-    file_type: SupportedFileType = Field(..., description="Type of the file")
-    
-    @field_validator('content')
-    @classmethod
-    def validate_content(cls, v):
-        if not v.strip():
-            raise ValueError("File content cannot be empty")
-        return v
-    
-    @field_validator('size_bytes')
-    @classmethod
-    def validate_size(cls, v):
-        max_size = 10 * 1024 * 1024  # 10MB
-        if v > max_size:
-            raise ValueError(f"File size {v} exceeds maximum allowed size {max_size}")
-        return v
-
 
 class TemplateFile(BaseModel):
     """Represents a documentation template."""
@@ -123,119 +79,6 @@ class DocumentationGenerationError(Exception):
     pass
 
 
-class FileProcessor:
-    """Handles file operations and validation."""
-    
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        self.supported_extensions = {ext.value for ext in SupportedFileType}
-    
-    def load_template(self, template_path: Path) -> Optional[str]:
-        """Load a template file with error handling."""
-        try:
-            if not template_path.exists():
-                logger.warning(f"Template file not found: {template_path}")
-                return None
-            
-            with open(template_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Error loading template {template_path}: {e}")
-            return None
-    
-    def get_code_files(self, code_dir: Path) -> Dict[str, CodeFile]:
-        """Extract and validate code files from directory."""
-        code_files = {}
-        files_processed = 0
-        
-        try:
-            for file_path in code_dir.rglob("*"):
-                if files_processed >= self.settings.max_files_to_process:
-                    logger.warning(f"Reached maximum file limit: {self.settings.max_files_to_process}")
-                    break
-                
-                if (file_path.is_file() and 
-                    file_path.suffix in self.supported_extensions and
-                    not self._should_ignore_file(file_path)):
-                    
-                    try:
-                        file_size = file_path.stat().st_size
-                        max_size = self.settings.max_file_size_mb * 1024 * 1024
-                        
-                        if file_size > max_size:
-                            logger.warning(f"Skipping large file: {file_path} ({file_size} bytes)")
-                            continue
-                        
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-                        
-                        code_file = CodeFile(
-                            name=file_path.name,
-                            path=str(file_path.relative_to(code_dir)),
-                            content=content,
-                            size_bytes=file_size,
-                            file_type=SupportedFileType(file_path.suffix)
-                        )
-                        
-                        code_files[file_path.name] = code_file
-                        files_processed += 1
-                        
-                    except Exception as e:
-                        logger.error(f"Error processing file {file_path}: {e}")
-                        continue
-        
-        except Exception as e:
-            logger.error(f"Error scanning directory {code_dir}: {e}")
-            raise DocumentationGenerationError(f"Failed to scan code directory: {e}")
-        
-        if not code_files:
-            raise DocumentationGenerationError("No valid code files found")
-        
-        logger.info(f"Processed {len(code_files)} code files")
-        return code_files
-    
-    def _should_ignore_file(self, file_path: Path) -> bool:
-        """Check if file should be ignored."""
-        ignore_patterns = {
-            '__pycache__', '.git', '.pytest_cache', 'node_modules',
-            '.venv', 'venv', '.env', 'dist', 'build'
-        }
-        
-        return any(pattern in str(file_path) for pattern in ignore_patterns)
-    
-    def get_template_files(self) -> Dict[str, TemplateFile]:
-        """Load all template files."""
-        template_dir = Path(self.settings.template_directory)
-        template_mapping = {
-            DocumentationType.README: "README_template.md",
-            DocumentationType.CONTRIBUTING: "CONTRIBUTING_template.md",
-            DocumentationType.ONBOARDING: "ONBOARDING_template.md",
-            DocumentationType.RUNBOOK: "RUNBOOK_template.md",
-            DocumentationType.TESTING: "TESTING_template.md",
-            DocumentationType.DEPENDENCY: "DEPENDENCY_template.md",
-            DocumentationType.LICENSE: "LICENSE_template.md",
-        }
-        
-        templates = {}
-        for doc_type, template_filename in template_mapping.items():
-            template_path = template_dir / template_filename
-            content = self.load_template(template_path)
-            
-            if content:
-                templates[doc_type.value] = TemplateFile(
-                    name=template_filename,
-                    content=content,
-                    doc_type=doc_type
-                )
-            else:
-                # Create fallback template
-                templates[doc_type.value] = TemplateFile(
-                    name=template_filename,
-                    content=f"# {doc_type.value}\n\nTemplate missing: {template_path}\n",
-                    doc_type=doc_type
-                )
-        
-        return templates
 
 
 class DocumentationGeneratorSignature(dspy.Signature):
