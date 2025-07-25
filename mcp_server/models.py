@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class DocumentationOutput(BaseModel):
     files: Dict[str, str]  # filename -> content
+    review: str
 
     @field_validator('files')
     def check_required_files(cls, v):
@@ -86,6 +87,7 @@ class IssueOutput(BaseModel):
 
 class AgentReport(BaseModel):
     issues: List[IssueOutput]
+    review: str
 
 class AllAgentOutputs(BaseModel):
     documentation: DocumentationOutput

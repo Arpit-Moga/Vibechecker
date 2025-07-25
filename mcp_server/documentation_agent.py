@@ -2,6 +2,7 @@ import os
 from typing import Dict
 from pydantic import ValidationError
 from mcp_server.models import DocumentationOutput
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 TEMPLATE_PATHS = {
     'README.md': '/home/arpit/coding/multi-agent/docs/templates/README_template.md',
@@ -50,10 +51,22 @@ def generate_documentation_files() -> Dict[str, str]:
         files[filename] = content
     return files
 
+def review_documentation_with_gemini(files: Dict[str, str]) -> str:
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY environment variable not set.")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    prompt = "You are an expert documentation reviewer. Review the following documentation files for completeness, clarity, and compliance with open-source and enterprise standards. Provide a detailed review and suggestions for improvement.\n\n"
+    for fname, content in files.items():
+        prompt += f"--- {fname} ---\n{content}\n\n"
+    result = llm.invoke(prompt)
+    return result.content
+
 def run_documentation_agent() -> DocumentationOutput:
     files = generate_documentation_files()
+    review = review_documentation_with_gemini(files)
     try:
-        doc_output = DocumentationOutput(files=files)
+        doc_output = DocumentationOutput(files=files, review=review)
     except ValidationError as e:
         raise RuntimeError(f"Documentation output validation failed: {e}")
     return doc_output
@@ -62,3 +75,5 @@ if __name__ == "__main__":
     output = run_documentation_agent()
     for fname, content in output.files.items():
         print(f"--- {fname} ---\n{content[:200]}...\n")
+    print("\nGemini Review:\n", output.review)
+
