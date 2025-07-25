@@ -20,14 +20,6 @@ TEMPLATE_PATHS = {
     'LICENSE': '/home/arpit/coding/multi-agent/docs/templates/LICENSE_template.md',
 }
 
-EXAMPLE_CONTENT = {
-    'project_name': 'Multi-Agent MCP Server',
-    'overview': 'A server for orchestrating multi-agent code reviews with strict compliance to open-source and enterprise standards.',
-    'contact': 'maintainer@example.com',
-    'api_version': 'v1.0.0',
-    'architecture_diagram': '<svg><!-- Example SVG --></svg>',
-    'license': 'MIT',
-}
 
 def load_template(path: str) -> str:
     if not os.path.exists(path):
@@ -35,23 +27,58 @@ def load_template(path: str) -> str:
     with open(path, 'r') as f:
         return f.read()
 
-def generate_documentation_files() -> Dict[str, str]:
+def get_code_files(code_dir: str) -> Dict[str, str]:
     files = {}
-    required_files = [
-        'README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'swagger.yaml', 'schema.graphql',
-        'architecture.svg', 'ONBOARDING.md', 'RUNBOOK.md', 'SECURITY.md', 'CHANGELOG.md',
-        'TESTING.md', 'DEPENDENCY.md', 'LICENSE'
-    ]
-    for fname in required_files:
-        files[fname] = ""
-    project_path = "/home/arpit/coding/multi-agent/mcp_server/main.py"
-    if os.path.exists(project_path):
-        with open(project_path, "r") as f:
-            content = f.read()
-        files["main.py"] = content
-    else:
-        files["main.py"] = "# main.py not found"
+    for fname in os.listdir(code_dir):
+        if fname.endswith('.py'):
+            with open(os.path.join(code_dir, fname), "r") as f:
+                files[fname] = f.read()
     return files
+
+
+def get_template_examples() -> Dict[str, str]:
+    examples = {}
+    for doc_name, template_path in TEMPLATE_PATHS.items():
+        examples[doc_name] = load_template(template_path)
+    return examples
+
+def summarize_code_files(files: Dict[str, str]) -> str:
+    summary = ""
+    for fname, content in files.items():
+        if fname.endswith('.py'):
+            # Simple summary: filename and first 5 lines
+            lines = content.splitlines()
+            summary += f"\n--- {fname} ---\n" + "\n".join(lines[:5]) + "\n...\n"
+    return summary
+
+
+def generate_documentation_with_llm(code_files: Dict[str, str], template_examples: Dict[str, str]) -> Dict[str, str]:
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY environment variable not set.")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    prompt = "You are an expert documentation generator. Given the following code files, and example documentation templates, create documentation files (README.md, CONTRIBUTING.md, etc.) for this codebase. Do NOT review or output the templates. Only generate new documentation files for the codebase, following the style and structure of the templates.\n\n"
+    prompt += "## Code files\n"
+    for fname, content in code_files.items():
+        prompt += f"--- {fname} ---\n{content}\n\n"
+    prompt += "## Documentation template examples\n"
+    for doc_name, template in template_examples.items():
+        prompt += f"--- {doc_name} (template example) ---\n{template}\n\n"
+    prompt += "\nGenerate the following documentation files for the codebase: " + ", ".join(template_examples.keys()) + ". Output each file as: --- filename ---\n<content>\n"
+    result = llm.invoke(prompt)
+    # Parse output into files
+    output_files = {}
+    for doc_name in template_examples.keys():
+        marker = f"--- {doc_name} ---"
+        if marker in result.content:
+            start = result.content.index(marker) + len(marker)
+            end = result.content.find("---", start)
+            if end == -1:
+                end = len(result.content)
+            output_files[doc_name] = result.content[start:end].strip()
+        else:
+            output_files[doc_name] = ""
+    return output_files
 
 def review_documentation_with_gemini(files: Dict[str, str]) -> str:
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -65,10 +92,14 @@ def review_documentation_with_gemini(files: Dict[str, str]) -> str:
     return result.content
 
 def run_documentation_agent() -> DocumentationOutput:
-    files = generate_documentation_files()
-    review = review_documentation_with_gemini(files)
+    code_dir = "/home/arpit/coding/multi-agent/Example-project"
+    code_files = get_code_files(code_dir)
+    template_examples = get_template_examples()
+    documentation_files = generate_documentation_with_llm(code_files, template_examples)
+    # Optionally, review the generated documentation files
+    review = "Documentation files generated for codebase."
     try:
-        doc_output = DocumentationOutput(files=files, review=review)
+        doc_output = DocumentationOutput(files=documentation_files, review=review)
     except ValidationError as e:
         raise RuntimeError(f"Documentation output validation failed: {e}")
     return doc_output
@@ -77,5 +108,5 @@ if __name__ == "__main__":
     output = run_documentation_agent()
     for fname, content in output.files.items():
         print(f"--- {fname} ---\n{content[:200]}...\n")
-    print("\nGemini Review:\n", output.review)
+    print("\nDocumentation Agent Status:\n", output.review)
 
