@@ -37,18 +37,20 @@ def load_template(path: str) -> str:
 
 def generate_documentation_files() -> Dict[str, str]:
     files = {}
-    for filename, template_path in TEMPLATE_PATHS.items():
-        content = load_template(template_path)
-        # For demonstration, just fill in example content
-        content = content.replace('{{project_name}}', EXAMPLE_CONTENT['project_name'])
-        content = content.replace('{{overview}}', EXAMPLE_CONTENT['overview'])
-        content = content.replace('{{contact}}', EXAMPLE_CONTENT['contact'])
-        content = content.replace('{{api_version}}', EXAMPLE_CONTENT['api_version'])
-        if filename == 'architecture.svg':
-            content = EXAMPLE_CONTENT['architecture_diagram']
-        if filename == 'LICENSE':
-            content = EXAMPLE_CONTENT['license']
-        files[filename] = content
+    required_files = [
+        'README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'swagger.yaml', 'schema.graphql',
+        'architecture.svg', 'ONBOARDING.md', 'RUNBOOK.md', 'SECURITY.md', 'CHANGELOG.md',
+        'TESTING.md', 'DEPENDENCY.md', 'LICENSE'
+    ]
+    for fname in required_files:
+        files[fname] = ""
+    project_path = "/home/arpit/coding/multi-agent/mcp_server/main.py"
+    if os.path.exists(project_path):
+        with open(project_path, "r") as f:
+            content = f.read()
+        files["main.py"] = content
+    else:
+        files["main.py"] = "# main.py not found"
     return files
 
 def review_documentation_with_gemini(files: Dict[str, str]) -> str:
