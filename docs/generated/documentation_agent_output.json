@@ -1,0 +1,17 @@
+{
+  "files": {
+    "README.md": "# Multi-Agent MCP Server\nA server for orchestrating multi-agent code reviews with strict compliance to open-source and enterprise standards.\nContact: maintainer@example.com\nVersion: v1.0.0\n...",
+    "CONTRIBUTING.md": "# Contributing\nHow to contribute, code style, PR review, branching, issue reporting...",
+    "CODE_OF_CONDUCT.md": "# Code of Conduct\nCommunity standards, reporting process, enforcement...",
+    "swagger.yaml": "openapi: 3.0.0\ninfo:\n  title: Multi-Agent MCP Server API\n  version: v1.0.0\n...",
+    "schema.graphql": "type Query { ... }\n...",
+    "architecture.svg": "<svg><!-- Example SVG --></svg>",
+    "ONBOARDING.md": "# Onboarding Guide\nStep-by-step for new devs, environment setup, common tasks...",
+    "RUNBOOK.md": "# Operations Runbook\nMonitoring, alerting, backup, recovery, deployment, rollback...",
+    "SECURITY.md": "# Security\nThreat model, authentication, authorization, data privacy, regulatory notes...",
+    "CHANGELOG.md": "# Changelog\nVersion history, release notes, migration steps...",
+    "TESTING.md": "# Testing\nTest strategy, coverage report, CI config, example test cases...",
+    "DEPENDENCY.md": "# Dependencies\nList of dependencies, license types, compliance notes...",
+    "LICENSE": "MIT"
+  }
+}

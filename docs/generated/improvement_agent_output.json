@@ -1,0 +1,22 @@
+{
+  "issues": [
+    {
+      "type": "improvement",
+      "severity": "high",
+      "description": "Function 'sort_items' in 'items.py' uses bubble sort.",
+      "file": "items.py",
+      "line": 15,
+      "suggestion": "Replace with a more efficient sorting algorithm.",
+      "reference": "/docs/criteria/improvement_checklist.md#algorithms"
+    },
+    {
+      "type": "improvement",
+      "severity": "medium",
+      "description": "API endpoint '/get_user' lacks documentation.",
+      "file": "api.py",
+      "line": 88,
+      "suggestion": "Add endpoint documentation.",
+      "reference": "/docs/criteria/improvement_checklist.md#documentation"
+    }
+  ]
+}

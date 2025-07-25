@@ -1,0 +1,22 @@
+{
+  "issues": [
+    {
+      "type": "critical",
+      "severity": "high",
+      "description": "SQL injection vulnerability in 'db.py'.",
+      "file": "db.py",
+      "line": 120,
+      "remediation": "Sanitize all SQL inputs and use parameterized queries.",
+      "reference": "/docs/criteria/critical_checklist.md#sql-injection"
+    },
+    {
+      "type": "critical",
+      "severity": "high",
+      "description": "Unhandled exception in 'main.py' causing crash.",
+      "file": "main.py",
+      "line": 77,
+      "remediation": "Add try/except block and proper error logging.",
+      "reference": "/docs/criteria/critical_checklist.md#crash"
+    }
+  ]
+}

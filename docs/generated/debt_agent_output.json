@@ -1,0 +1,22 @@
+{
+  "issues": [
+    {
+      "type": "debt",
+      "severity": "high",
+      "description": "Function 'process_data' in 'main.py' exceeds 100 lines.",
+      "file": "main.py",
+      "line": 42,
+      "suggestion": "Refactor into smaller functions.",
+      "reference": "/docs/criteria/debt_checklist.md#large-functions"
+    },
+    {
+      "type": "debt",
+      "severity": "low",
+      "description": "Variable 'x' in 'utils.py' is poorly named.",
+      "file": "utils.py",
+      "line": 10,
+      "suggestion": "Rename variable to something descriptive.",
+      "reference": "/docs/criteria/debt_checklist.md#naming"
+    }
+  ]
+}
