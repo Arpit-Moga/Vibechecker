@@ -11,17 +11,32 @@ A modular, multi-agent server for automated codebase review, documentation, and 
 - NPX/CLI packaging for easy distribution
 
 ## Installation
+
+### Python (Recommended for MCP Server)
 ```bash
-npm install -g multi-agent-mcp-server
+# Clone repo
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Docker
+```bash
+# Build Docker image
+docker build -t mcp-server .
+# Run container
+# (Expose port 80, override env vars as needed)
+docker run -p 80:80 mcp-server
 ```
 
 ## Usage
-### CLI
-```bash
-npx mcp-server --upload path/to/codebase
-npx mcp-server --trigger-review
-npx mcp-server --get-results
-```
+
+### API Endpoints
+- POST `/upload_codebase` (multipart/form-data, field: codebase)
+- POST `/trigger_review` (json: {"id": "<codebase_id>"})
+- GET `/get_results?id=<review_id>`
+
+### Environment Variables
+- `MCP_MAX_FILE_SIZE` (default: 524288000)
 
 ### Python
 ```python
