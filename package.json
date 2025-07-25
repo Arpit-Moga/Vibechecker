@@ -1,0 +1,18 @@
+{
+  "name": "multi-agent-mcp-server",
+  "version": "0.1.0",
+  "description": "Multi-agent MCP server for codebase review and documentation.",
+  "main": "mcp_server/main.py",
+  "bin": {
+    "mcp-server": "mcp_server/main.py"
+  },
+  "scripts": {
+    "test": "pytest mcp_server/",
+    "start": "python mcp_server/main.py"
+  },
+  "author": "opencode",
+  "license": "MIT",
+  "dependencies": {
+    "pydantic": "^2.6.0"
+  }
+}

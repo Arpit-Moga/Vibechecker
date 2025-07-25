@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 class DocumentationOutput(BaseModel):
     files: Dict[str, str]  # filename -> content
 
-    @validator('files')
+    @field_validator('files')
     def check_required_files(cls, v):
         required = [
             'README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md',
@@ -18,8 +18,8 @@ class DocumentationOutput(BaseModel):
         return v
 
 class IssueOutput(BaseModel):
-    type: str = Field(..., regex='^(debt|improvement|critical)$')
-    severity: str = Field(..., regex='^(low|medium|high)$')
+    type: str = Field(..., pattern='^(debt|improvement|critical)$')
+    severity: str = Field(..., pattern='^(low|medium|high)$')
     description: str
     file: str
     line: int
@@ -27,20 +27,59 @@ class IssueOutput(BaseModel):
     remediation: Optional[str] = None  # For critical
     reference: Optional[str] = None
 
-    @validator('suggestion', always=True)
-    def suggestion_required_for_debt_improvement(cls, v, values):
+from pydantic import model_validator, ValidationError
+
+class IssueOutput(BaseModel):
+    type: str = Field(..., pattern='^(debt|improvement|critical)$')
+    severity: str = Field(..., pattern='^(low|medium|high)$')
+    description: str
+    file: str
+    line: int
+    suggestion: Optional[str] = None  # For debt/improvement
+    remediation: Optional[str] = None  # For critical
+    reference: Optional[str] = None
+
+    @model_validator(mode="after")
+    def check_required_fields(cls, values):
+        errors = []
+        t = values.type
+        if t in ['debt', 'improvement'] and not values.suggestion:
+            errors.append({"loc": ("suggestion",), "msg": "suggestion is required for debt/improvement issues", "type": "value_error"})
+        if t == 'critical' and not values.remediation:
+            errors.append({"loc": ("remediation",), "msg": "remediation is required for critical issues", "type": "value_error"})
+        if t == 'critical' and values.severity != 'high':
+            errors.append({"loc": ("severity",), "msg": "Critical issues must have severity 'high'", "type": "value_error"})
+        if errors:
+            raise ValidationError(errors, cls)
+        return values
+
+
+    @field_validator('suggestion', mode='before')
+    def suggestion_required_for_debt_improvement(cls, v, info):
+        values = info.data
+        if values.get('type') in ['debt', 'improvement'] and not v:
+            raise ValueError('suggestion is required for debt/improvement issues')
+        return v
         if values.get('type') in ['debt', 'improvement'] and not v:
             raise ValueError('suggestion is required for debt/improvement issues')
         return v
 
-    @validator('remediation', always=True)
-    def remediation_required_for_critical(cls, v, values):
+    @field_validator('remediation', mode='before')
+    def remediation_required_for_critical(cls, v, info):
+        values = info.data
+        if values.get('type') == 'critical' and not v:
+            raise ValueError('remediation is required for critical issues')
+        return v
         if values.get('type') == 'critical' and not v:
             raise ValueError('remediation is required for critical issues')
         return v
 
-    @validator('severity')
-    def severity_for_critical(cls, v, values):
+    @field_validator('severity', mode='before')
+    def severity_for_critical(cls, v, info):
+        values = info.data
+        if values.get('type') == 'critical' and v != 'high':
+            raise ValueError('Critical issues must have severity "high"')
+        return v
         if values.get('type') == 'critical' and v != 'high':
             raise ValueError('Critical issues must have severity "high"')
         return v

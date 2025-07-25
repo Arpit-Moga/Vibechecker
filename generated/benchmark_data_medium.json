@@ -1,0 +1,9 @@
+{
+  "codebase_size": "medium",
+  "lines": 10000,
+  "upload_latency_ms": null,
+  "review_latency_ms": null,
+  "results_latency_ms": null,
+  "agent_workflow_latency_ms": null,
+  "memory_usage_mb": null
+}

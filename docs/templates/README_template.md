@@ -1,7 +1,7 @@
 # README Template
 
 ## Project Title
-- Clear, descriptive name of the project
+- {{project_name}}
 
 ## Overview
 - Brief summary of the project’s purpose and goals

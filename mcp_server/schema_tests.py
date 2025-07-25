@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from schemas import (
+from mcp_server.schemas import (
     DocumentationOutput,
     DebtIssue, DebtOutput,
     ImprovementIssue, ImprovementOutput,
