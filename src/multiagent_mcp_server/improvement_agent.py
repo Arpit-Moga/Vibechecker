@@ -5,7 +5,7 @@ This module provides improvement opportunity detection and analysis capabilities
 with significantly reduced code duplication through inheritance.
 """
 
-import logging
+from src.multiagent_mcp_server.error_utils import get_logger, handle_errors
 from typing import List, Optional
 
 from .base_agent import BaseAgent
@@ -13,9 +13,7 @@ from .models import IssueType, AgentReport
 from .config import Settings
 from .prompt_signatures import ImprovementDetectionSignature
 
-# Configure logging
-logger = logging.getLogger(__name__)
-
+logger = get_logger("multiagent_mcp_server.improvement_agent")
 
 class ImprovementAgent(BaseAgent):
     """
@@ -60,6 +58,7 @@ class ImprovementAgent(BaseAgent):
         ]
 
 
+@handle_errors(logger=logger, context="ImprovementAgent.main")
 def main(output_dir: Optional[str] = None) -> AgentReport:
     """
     Main entry point for the code improvement analyzer.
@@ -70,19 +69,14 @@ def main(output_dir: Optional[str] = None) -> AgentReport:
     Returns:
         AgentReport: Analysis results with detected improvement opportunities
     """
-    try:
-        settings = Settings()
-        agent = ImprovementAgent(settings)
-        
-        logger.info("Starting code improvement analysis...")
-        report = agent.run(output_dir=output_dir)
-        
-        logger.info("Code improvement analysis completed successfully")
-        return report
-        
-    except Exception as e:
-        logger.error(f"Code improvement analysis failed: {e}")
-        raise
+    settings = Settings()
+    agent = ImprovementAgent(settings)
+    
+    logger.info("Starting code improvement analysis...")
+    report = agent.run(output_dir=output_dir)
+    
+    logger.info("Code improvement analysis completed successfully")
+    return report
 
 
 if __name__ == "__main__":

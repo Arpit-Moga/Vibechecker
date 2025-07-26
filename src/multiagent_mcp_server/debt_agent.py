@@ -5,18 +5,15 @@ This module provides technical debt detection and analysis capabilities
 with significantly reduced code duplication through inheritance.
 """
 
-import logging
+from src.multiagent_mcp_server.error_utils import get_logger, handle_errors
 from typing import List, Optional
 
 from .base_agent import BaseAgent
 from .models import IssueType, AgentReport
 from .config import Settings
-
-# Configure logging
-logger = logging.getLogger(__name__)
-
 from .prompt_signatures import DebtDetectionSignature
 
+logger = get_logger("multiagent_mcp_server.debt_agent")
 
 class DebtAgent(BaseAgent):
     """
@@ -59,6 +56,7 @@ class DebtAgent(BaseAgent):
         ]
 
 
+@handle_errors(logger=logger, context="DebtAgent.main")
 def main(output_dir: Optional[str] = None) -> AgentReport:
     """
     Main entry point for the technical debt analyzer.
@@ -69,19 +67,14 @@ def main(output_dir: Optional[str] = None) -> AgentReport:
     Returns:
         AgentReport: Analysis results with detected technical debt issues
     """
-    try:
-        settings = Settings()
-        agent = DebtAgent(settings)
-        
-        logger.info("Starting technical debt analysis...")
-        report = agent.run(output_dir=output_dir)
-        
-        logger.info("Technical debt analysis completed successfully")
-        return report
-        
-    except Exception as e:
-        logger.error(f"Technical debt analysis failed: {e}")
-        raise
+    settings = Settings()
+    agent = DebtAgent(settings)
+    
+    logger.info("Starting technical debt analysis...")
+    report = agent.run(output_dir=output_dir)
+    
+    logger.info("Technical debt analysis completed successfully")
+    return report
 
 
 if __name__ == "__main__":

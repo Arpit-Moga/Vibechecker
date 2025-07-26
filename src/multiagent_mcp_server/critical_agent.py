@@ -5,18 +5,15 @@ This module provides critical issue detection and analysis capabilities
 with significantly reduced code duplication through inheritance.
 """
 
-import logging
+from src.multiagent_mcp_server.error_utils import get_logger, handle_errors
 from typing import List, Optional
 
 from .base_agent import BaseAgent
 from .models import IssueType, AgentReport
 from .config import Settings
-
-# Configure logging
-logger = logging.getLogger(__name__)
-
 from .prompt_signatures import CriticalDetectionSignature
 
+logger = get_logger("multiagent_mcp_server.critical_agent")
 
 class CriticalAgent(BaseAgent):
     """
@@ -61,6 +58,7 @@ class CriticalAgent(BaseAgent):
         ]
 
 
+@handle_errors(logger=logger, context="CriticalAgent.main")
 def main(output_dir: Optional[str] = None) -> AgentReport:
     """
     Main entry point for the critical issues analyzer.
@@ -71,19 +69,14 @@ def main(output_dir: Optional[str] = None) -> AgentReport:
     Returns:
         AgentReport: Analysis results with detected critical issues
     """
-    try:
-        settings = Settings()
-        agent = CriticalAgent(settings)
-        
-        logger.info("Starting critical issues analysis...")
-        report = agent.run(output_dir=output_dir)
-        
-        logger.info("Critical issues analysis completed successfully")
-        return report
-        
-    except Exception as e:
-        logger.error(f"Critical issues analysis failed: {e}")
-        raise
+    settings = Settings()
+    agent = CriticalAgent(settings)
+    
+    logger.info("Starting critical issues analysis...")
+    report = agent.run(output_dir=output_dir)
+    
+    logger.info("Critical issues analysis completed successfully")
+    return report
 
 
 if __name__ == "__main__":

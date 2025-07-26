@@ -7,6 +7,8 @@ across all specialized agents while maintaining extensibility and type safety.
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from .error_utils import get_logger, handle_errors
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +23,7 @@ from .agent_utils import FileProcessor, CodeFile
 
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger("multiagent_mcp_server.base_agent")
 
 
 class BaseIssueDetectionSignature(dspy.Signature):
@@ -329,57 +331,59 @@ class BaseAgent(ABC):
         """Return agent-specific recommendations for the report."""
         pass
     
+    @handle_errors(logger=logger, context="BaseAgent.run")
     def run(self, output_dir: Optional[str] = None) -> AgentReport:
         """
-        Main execution method for the agent.
-        
-        Args:
-            output_dir: Optional output directory override
-            
-        Returns:
-            AgentReport: Validated report with detected issues and review
+        Main execution method for the agent with batch and parallel processing.
         """
         logger.info(f"Starting {self.agent_name} analysis...")
-        
+
         # Validate code directory
         code_dir = Path(self.settings.code_directory)
         if not code_dir.exists():
             raise RuntimeError(f"Code directory not found: {code_dir}")
-        
+
         # Get code files
         code_files = self.file_processor.get_code_files(code_dir)
         self._files_processed = len(code_files)
-        
+
         if not code_files:
             logger.warning(f"No code files found in {code_dir}")
-        
-        # Detect issues across all files
+
+        # Detect issues across all files in parallel
         all_issues = []
-        for code_file in code_files.values():
-            file_issues = self.detect_issues_in_file(code_file)
-            all_issues.extend(file_issues)
-        
+        max_workers = min(8, len(code_files)) if code_files else 1  # Configurable if needed
+
+        def process_file(code_file):
+            return self.detect_issues_in_file(code_file)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_file = {executor.submit(process_file, cf): cf.name for cf in code_files.values()}
+            for future in as_completed(future_to_file):
+                file_issues = future.result()
+                all_issues.extend(file_issues)
+
         logger.info(f"{self.agent_name} detected {len(all_issues)} issues")
-        
+
         # Generate review
         review = self.review_issues(all_issues)
-        
+
         # Create and validate report
         try:
             report = AgentReport(issues=all_issues, review=review)
         except ValidationError as e:
             logger.error(f"{self.agent_name} output validation failed: {e}")
             raise RuntimeError(f"{self.agent_name} output validation failed: {e}")
-        
+
         # Write output files
         if output_dir:
             doc_dir = Path(output_dir) / "DOCUMENTATION"
         else:
             doc_dir = Path(self.settings.code_directory) / "DOCUMENTATION"
-        
+
         file_info = self.write_output_files(report, doc_dir)
         logger.info(f"{self.agent_name} analysis complete. Files written: {file_info}")
-        
+
         return report
 
 
