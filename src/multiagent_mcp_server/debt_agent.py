@@ -6,11 +6,14 @@ This module provides a robust technical debt review system that:
 - Uses DSPy for LLM calls and composable modules
 - Provides validation and error handling
 - Supports multiple LLM providers with fallback
+- Writes outputs to JSON and Markdown files in DOCUMENTATION folder
 """
 
 import logging
 import os
+import json
 from typing import List, Optional
+from datetime import datetime
 from pydantic import ValidationError
 from multiagent_mcp_server.models import IssueOutput, AgentReport
 import dspy
@@ -103,12 +106,123 @@ class DebtAgent:
         issues_str = self._format_issues(issues)
         return self.reviewer.forward(issues=issues_str)
 
-    # Heuristic detection removed: now fully LLM-based
-    def run(self) -> AgentReport:
+    def _write_output_files(self, report: AgentReport, output_dir: Path) -> dict:
+        """Write agent output to JSON and Markdown files."""
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        json_file = output_dir / f"technical_debt_{timestamp}.json"
+        md_file = output_dir / f"technical_debt_{timestamp}.md"
+        
+        # Write JSON file
+        json_data = {
+            "timestamp": datetime.now().isoformat(),
+            "agent_type": "debt",
+            "total_issues": len(report.issues),
+            "issues": [issue.model_dump() for issue in report.issues],
+            "review": report.review
+        }
+        
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+        
+        # Write Markdown file
+        md_content = self._generate_markdown_report(report, timestamp)
+        with open(md_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        
+        logger.info(f"Technical debt report written to: {json_file}")
+        logger.info(f"Technical debt markdown written to: {md_file}")
+        
+        return {
+            "json_file": str(json_file),
+            "markdown_file": str(md_file),
+            "total_issues": len(report.issues)
+        }
+    
+    def _generate_markdown_report(self, report: AgentReport, timestamp: str) -> str:
+        """Generate a comprehensive Markdown report."""
+        md_lines = [
+            "# Technical Debt Analysis Report",
+            f"",
+            f"**Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Agent:** Technical Debt Analyzer",
+            f"**Total Issues Found:** {len(report.issues)}",
+            f"",
+            "## Executive Summary",
+            f"",
+            report.review,
+            f"",
+            "## Technical Debt Details",
+            f""
+        ]
+        
+        if not report.issues:
+            md_lines.extend([
+                "✅ **No significant technical debt detected!**",
+                "",
+                "The codebase analysis shows good maintainability and follows best practices."
+            ])
+        else:
+            # Group issues by severity
+            high_issues = [issue for issue in report.issues if issue.severity == "high"]
+            medium_issues = [issue for issue in report.issues if issue.severity == "medium"]
+            low_issues = [issue for issue in report.issues if issue.severity == "low"]
+            
+            for severity, issues in [("High", high_issues), ("Medium", medium_issues), ("Low", low_issues)]:
+                if issues:
+                    md_lines.extend([
+                        f"### {severity} Priority Technical Debt ({len(issues)})",
+                        ""
+                    ])
+                    
+                    for i, issue in enumerate(issues, 1):
+                        md_lines.extend([
+                            f"#### {i}. {issue.description}",
+                            f"",
+                            f"- **File:** `{issue.file}`",
+                            f"- **Line:** {issue.line}",
+                            f"- **Type:** {issue.type}",
+                            f"- **Priority:** {issue.severity}",
+                            ""
+                        ])
+                        
+                        if issue.suggestion:
+                            md_lines.extend([
+                                f"**Suggested Improvement:**",
+                                f"{issue.suggestion}",
+                                ""
+                            ])
+                        
+                        if issue.reference:
+                            md_lines.extend([
+                                f"**Reference:** {issue.reference}",
+                                ""
+                            ])
+                        
+                        md_lines.append("---")
+                        md_lines.append("")
+        
+        md_lines.extend([
+            "## Recommendations",
+            "",
+            "1. **High Priority:** Address high-priority technical debt to improve maintainability",
+            "2. **Refactoring Plan:** Create a systematic plan to reduce technical debt over time", 
+            "3. **Code Standards:** Establish and enforce coding standards to prevent future debt",
+            "4. **Regular Reviews:** Schedule periodic technical debt assessments",
+            "",
+            "---",
+            f"*Report generated by Multi-Agent MCP Server - Technical Debt Analyzer*"
+        ])
+        
+        return "\n".join(md_lines)
+
+    def run(self, output_dir: Optional[str] = None) -> AgentReport:
         code_dir = Path(self.settings.code_directory)
         if not code_dir.exists():
             raise RuntimeError(f"Code directory not found: {code_dir}")
         code_files = FileProcessor(self.settings).get_code_files(code_dir)
+        
         detector = DebtIssueDetector()
         llm_issues = []
         import json
@@ -120,15 +234,28 @@ class DebtAgent:
                     llm_issues.append(IssueOutput(**issue))
             except Exception:
                 logger.warning(f"Malformed LLM output for {file.name}, skipping.")
+                
         unique_issues = llm_issues
         if not unique_issues:
             logger.info("No technical debt issues detected.")
+            
         review = self.review_debt_issues(unique_issues)
+        
         try:
             report = AgentReport(issues=unique_issues, review=review)
         except ValidationError as e:
             logger.error(f"Debt agent output validation failed: {e}")
             raise RuntimeError(f"Debt agent output validation failed: {e}")
+        
+        # Write output files
+        if output_dir:
+            doc_dir = Path(output_dir) / "DOCUMENTATION"
+        else:
+            doc_dir = Path(self.settings.code_directory) / "DOCUMENTATION"
+        
+        file_info = self._write_output_files(report, doc_dir)
+        logger.info(f"Technical debt analysis complete. Files written: {file_info}")
+        
         return report
 
 def _create_code_summary(code_files: dict) -> str:
@@ -140,7 +267,7 @@ def _create_code_summary(code_files: dict) -> str:
         summary_parts.append(f"- {code_file.name} ({code_file.size_bytes} bytes)")
     return "\n".join(summary_parts)
 
-def main():
+def main(output_dir: Optional[str] = None):
     """Main entry point for the technical debt reviewer."""
     try:
         settings = Settings()
@@ -149,7 +276,9 @@ def main():
         code_dir = Path(settings.code_directory)
         code_files = FileProcessor(settings).get_code_files(code_dir)
         code_summary = _create_code_summary(code_files)
-        output = agent.run()
+        output = agent.run(output_dir=output_dir)
+        
+        # Also print to console for backwards compatibility
         print("\n" + "="*80)
         print("TECHNICAL DEBT REVIEW COMPLETE")
         print("="*80)

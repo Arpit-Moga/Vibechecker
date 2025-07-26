@@ -2,11 +2,14 @@
 Production-ready improvement agent using DSPy and Pydantic.
 
 This module scans code files for improvement opportunities using LLMs, validates outputs, and generates a review report.
+Writes outputs to JSON and Markdown files in DOCUMENTATION folder.
 """
 
 import logging
 import os
+import json
 from typing import List, Optional
+from datetime import datetime
 from pydantic import ValidationError
 from multiagent_mcp_server.models import IssueOutput, AgentReport
 import dspy
@@ -103,11 +106,123 @@ class ImprovementAgent:
     def review_improvements(self, issues: List[IssueOutput]) -> str:
         issues_str = self._format_issues(issues)
         return self.reviewer.forward(issues=issues_str)
-    def run(self) -> AgentReport:
+    
+    def _write_output_files(self, report: AgentReport, output_dir: Path) -> dict:
+        """Write agent output to JSON and Markdown files."""
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        json_file = output_dir / f"improvement_opportunities_{timestamp}.json"
+        md_file = output_dir / f"improvement_opportunities_{timestamp}.md"
+        
+        # Write JSON file
+        json_data = {
+            "timestamp": datetime.now().isoformat(),
+            "agent_type": "improvement",
+            "total_issues": len(report.issues),
+            "issues": [issue.model_dump() for issue in report.issues],
+            "review": report.review
+        }
+        
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+        
+        # Write Markdown file
+        md_content = self._generate_markdown_report(report, timestamp)
+        with open(md_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        
+        logger.info(f"Improvement opportunities report written to: {json_file}")
+        logger.info(f"Improvement opportunities markdown written to: {md_file}")
+        
+        return {
+            "json_file": str(json_file),
+            "markdown_file": str(md_file),
+            "total_issues": len(report.issues)
+        }
+    
+    def _generate_markdown_report(self, report: AgentReport, timestamp: str) -> str:
+        """Generate a comprehensive Markdown report."""
+        md_lines = [
+            "# Code Improvement Opportunities Report",
+            f"",
+            f"**Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Agent:** Code Improvement Analyzer",
+            f"**Total Opportunities Found:** {len(report.issues)}",
+            f"",
+            "## Executive Summary",
+            f"",
+            report.review,
+            f"",
+            "## Improvement Opportunities",
+            f""
+        ]
+        
+        if not report.issues:
+            md_lines.extend([
+                "✅ **Excellent code quality!**",
+                "",
+                "The codebase analysis shows high-quality code with minimal improvement opportunities."
+            ])
+        else:
+            # Group issues by severity
+            high_issues = [issue for issue in report.issues if issue.severity == "high"]
+            medium_issues = [issue for issue in report.issues if issue.severity == "medium"]
+            low_issues = [issue for issue in report.issues if issue.severity == "low"]
+            
+            for severity, issues in [("High", high_issues), ("Medium", medium_issues), ("Low", low_issues)]:
+                if issues:
+                    md_lines.extend([
+                        f"### {severity} Impact Improvements ({len(issues)})",
+                        ""
+                    ])
+                    
+                    for i, issue in enumerate(issues, 1):
+                        md_lines.extend([
+                            f"#### {i}. {issue.description}",
+                            f"",
+                            f"- **File:** `{issue.file}`",
+                            f"- **Line:** {issue.line}",
+                            f"- **Type:** {issue.type}",
+                            f"- **Impact:** {issue.severity}",
+                            ""
+                        ])
+                        
+                        if issue.suggestion:
+                            md_lines.extend([
+                                f"**Suggested Improvement:**",
+                                f"{issue.suggestion}",
+                                ""
+                            ])
+                        
+                        if issue.reference:
+                            md_lines.extend([
+                                f"**Reference:** {issue.reference}",
+                                ""
+                            ])
+                        
+                        md_lines.append("---")
+                        md_lines.append("")
+        
+        md_lines.extend([
+            "## Implementation Strategy",
+            "",
+            "1. **High Impact:** Prioritize high-impact improvements for maximum benefit",
+            "2. **Performance:** Focus on performance optimizations for better user experience", 
+            "3. **Best Practices:** Implement coding best practices to improve maintainability",
+            "4. **Documentation:** Enhance code documentation and comments",
+            "",
+            "---",
+            f"*Report generated by Multi-Agent MCP Server - Code Improvement Analyzer*"
+        ])
+        
+        return "\n".join(md_lines)
+    def run(self, output_dir: Optional[str] = None) -> AgentReport:
         code_dir = Path(self.settings.code_directory)
         if not code_dir.exists():
             raise RuntimeError(f"Code directory not found: {code_dir}")
         code_files = FileProcessor(self.settings).get_code_files(code_dir)
+        
         detector = ImprovementDetector()
         llm_issues = []
         import json
@@ -119,15 +234,28 @@ class ImprovementAgent:
                     llm_issues.append(IssueOutput(**issue))
             except Exception:
                 logger.warning(f"Malformed LLM output for {file.name}, skipping.")
+                
         unique_issues = llm_issues
         if not unique_issues:
             logger.info("No improvement opportunities detected.")
+            
         review = self.review_improvements(unique_issues)
+        
         try:
             report = AgentReport(issues=unique_issues, review=review)
         except ValidationError as e:
             logger.error(f"Improvement agent output validation failed: {e}")
             raise RuntimeError(f"Improvement agent output validation failed: {e}")
+        
+        # Write output files
+        if output_dir:
+            doc_dir = Path(output_dir) / "DOCUMENTATION"
+        else:
+            doc_dir = Path(self.settings.code_directory) / "DOCUMENTATION"
+        
+        file_info = self._write_output_files(report, doc_dir)
+        logger.info(f"Improvement opportunities analysis complete. Files written: {file_info}")
+        
         return report
 
 def _create_code_summary(code_files: dict) -> str:
@@ -139,7 +267,7 @@ def _create_code_summary(code_files: dict) -> str:
         summary_parts.append(f"- {code_file.name} ({code_file.size_bytes} bytes)")
     return "\n".join(summary_parts)
 
-def main():
+def main(output_dir: Optional[str] = None):
     """Main entry point for the improvement agent."""
     try:
         settings = Settings()
@@ -148,7 +276,9 @@ def main():
         code_dir = Path(settings.code_directory)
         code_files = FileProcessor(settings).get_code_files(code_dir)
         code_summary = _create_code_summary(code_files)
-        output = agent.run()
+        output = agent.run(output_dir=output_dir)
+        
+        # Also print to console for backwards compatibility
         print("\n" + "="*80)
         print("IMPROVEMENT REVIEW COMPLETE")
         print("="*80)

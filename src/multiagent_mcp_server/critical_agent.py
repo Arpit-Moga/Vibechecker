@@ -6,11 +6,14 @@ This module provides a robust critical issue review system that:
 - Uses DSPy for LLM calls and composable modules
 - Provides validation and error handling
 - Supports multiple LLM providers with fallback
+- Writes outputs to JSON and Markdown files in DOCUMENTATION folder
 """
 
 import logging
 import os
+import json
 from typing import List, Optional
+from datetime import datetime
 from pydantic import ValidationError
 from multiagent_mcp_server.models import IssueOutput, AgentReport
 import dspy
@@ -104,14 +107,124 @@ class CriticalAgent:
         issues_str = self._format_issues(issues)
         return self.reviewer.forward(issues=issues_str)
 
+    def _write_output_files(self, report: AgentReport, output_dir: Path) -> dict:
+        """Write agent output to JSON and Markdown files."""
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        json_file = output_dir / f"critical_issues_{timestamp}.json"
+        md_file = output_dir / f"critical_issues_{timestamp}.md"
+        
+        # Write JSON file
+        json_data = {
+            "timestamp": datetime.now().isoformat(),
+            "agent_type": "critical",
+            "total_issues": len(report.issues),
+            "issues": [issue.model_dump() for issue in report.issues],
+            "review": report.review
+        }
+        
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+        
+        # Write Markdown file
+        md_content = self._generate_markdown_report(report, timestamp)
+        with open(md_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        
+        logger.info(f"Critical issues report written to: {json_file}")
+        logger.info(f"Critical issues markdown written to: {md_file}")
+        
+        return {
+            "json_file": str(json_file),
+            "markdown_file": str(md_file),
+            "total_issues": len(report.issues)
+        }
+    
+    def _generate_markdown_report(self, report: AgentReport, timestamp: str) -> str:
+        """Generate a comprehensive Markdown report."""
+        md_lines = [
+            "# Critical Issues Analysis Report",
+            f"",
+            f"**Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Agent:** Critical Issues Analyzer",
+            f"**Total Issues Found:** {len(report.issues)}",
+            f"",
+            "## Executive Summary",
+            f"",
+            report.review,
+            f"",
+            "## Critical Issues Details",
+            f""
+        ]
+        
+        if not report.issues:
+            md_lines.extend([
+                "✅ **No critical issues detected!**",
+                "",
+                "The codebase analysis did not identify any critical security or reliability issues."
+            ])
+        else:
+            # Group issues by severity
+            high_issues = [issue for issue in report.issues if issue.severity == "high"]
+            medium_issues = [issue for issue in report.issues if issue.severity == "medium"]
+            low_issues = [issue for issue in report.issues if issue.severity == "low"]
+            
+            for severity, issues in [("High", high_issues), ("Medium", medium_issues), ("Low", low_issues)]:
+                if issues:
+                    md_lines.extend([
+                        f"### {severity} Severity Issues ({len(issues)})",
+                        ""
+                    ])
+                    
+                    for i, issue in enumerate(issues, 1):
+                        md_lines.extend([
+                            f"#### {i}. {issue.description}",
+                            f"",
+                            f"- **File:** `{issue.file}`",
+                            f"- **Line:** {issue.line}",
+                            f"- **Type:** {issue.type}",
+                            f"- **Severity:** {issue.severity}",
+                            ""
+                        ])
+                        
+                        if issue.remediation:
+                            md_lines.extend([
+                                f"**Remediation:**",
+                                f"{issue.remediation}",
+                                ""
+                            ])
+                        
+                        if issue.reference:
+                            md_lines.extend([
+                                f"**Reference:** {issue.reference}",
+                                ""
+                            ])
+                        
+                        md_lines.append("---")
+                        md_lines.append("")
+        
+        md_lines.extend([
+            "## Recommendations",
+            "",
+            "1. **Immediate Action Required:** Address all high-severity critical issues immediately",
+            "2. **Security Review:** Conduct a thorough security audit of identified vulnerabilities", 
+            "3. **Code Review Process:** Implement automated security scanning in CI/CD pipeline",
+            "4. **Documentation:** Update security documentation and incident response procedures",
+            "",
+            "---",
+            f"*Report generated by Multi-Agent MCP Server - Critical Issues Analyzer*"
+        ])
+        
+        return "\n".join(md_lines)
 
-    # Heuristic detection removed: now fully LLM-based
 
-    def run(self) -> AgentReport:
+    def run(self, output_dir: Optional[str] = None) -> AgentReport:
         code_dir = Path(self.settings.code_directory)
         if not code_dir.exists():
             raise RuntimeError(f"Code directory not found: {code_dir}")
         code_files = FileProcessor(self.settings).get_code_files(code_dir)
+        
         # LLM-based detection only
         detector = CriticalIssueDetector()
         llm_issues = []
@@ -126,16 +239,29 @@ class CriticalAgent:
             except Exception:
                 # If not JSON, fallback: ignore malformed output
                 logger.warning(f"Malformed LLM output for {file.name}, skipping.")
+        
         # Deduplicate issues (optional, can be removed if you want all raw LLM output)
         unique_issues = llm_issues
         if not unique_issues:
             logger.info("No critical issues detected.")
+        
         review = self.review_critical_issues(unique_issues)
+        
         try:
             report = AgentReport(issues=unique_issues, review=review)
         except ValidationError as e:
             logger.error(f"Critical agent output validation failed: {e}")
             raise RuntimeError(f"Critical agent output validation failed: {e}")
+        
+        # Write output files
+        if output_dir:
+            doc_dir = Path(output_dir) / "DOCUMENTATION"
+        else:
+            doc_dir = Path(self.settings.code_directory) / "DOCUMENTATION"
+        
+        file_info = self._write_output_files(report, doc_dir)
+        logger.info(f"Critical issues analysis complete. Files written: {file_info}")
+        
         return report
 
 
@@ -148,7 +274,7 @@ def _create_code_summary(code_files: dict) -> str:
         summary_parts.append(f"- {code_file.name} ({code_file.size_bytes} bytes)")
     return "\n".join(summary_parts)
 
-def main():
+def main(output_dir: Optional[str] = None):
     """Main entry point for the critical issue reviewer."""
     try:
         settings = Settings()
@@ -157,7 +283,9 @@ def main():
         code_dir = Path(settings.code_directory)
         code_files = FileProcessor(settings).get_code_files(code_dir)
         code_summary = _create_code_summary(code_files)
-        output = agent.run()
+        output = agent.run(output_dir=output_dir)
+        
+        # Also print to console for backwards compatibility
         print("\n" + "="*80)
         print("CRITICAL ISSUE REVIEW COMPLETE")
         print("="*80)

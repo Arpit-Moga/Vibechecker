@@ -21,12 +21,13 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("Multi-Agent MCP Server", description="Production-ready multi-agent code review and documentation system")
 
 @mcp.tool()
-def debt_review(code_directory: Optional[str] = None) -> AgentReport:
+def debt_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
     """
     Run the DebtAgent on the specified code directory.
     
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
+        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
         AgentReport: Structured report with detected technical debt issues
@@ -37,7 +38,7 @@ def debt_review(code_directory: Optional[str] = None) -> AgentReport:
         settings = Settings(code_directory=target_dir)
         agent = DebtAgent(settings)
         logger.info(f"Running DebtAgent on {settings.code_directory}")
-        return agent.run()
+        return agent.run(output_dir=output_directory)
     except Exception as e:
         logger.error(f"Error in debt_review: {e}")
         # Return empty report on error
@@ -45,12 +46,13 @@ def debt_review(code_directory: Optional[str] = None) -> AgentReport:
         return AgentReport(issues=[], review=f"Error occurred during analysis: {str(e)}")
 
 @mcp.tool()
-def improvement_review(code_directory: Optional[str] = None) -> AgentReport:
+def improvement_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
     """
     Run the ImprovementAgent on the specified code directory.
     
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
+        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
         AgentReport: Structured report with detected improvement opportunities
@@ -60,19 +62,20 @@ def improvement_review(code_directory: Optional[str] = None) -> AgentReport:
         settings = Settings(code_directory=target_dir)
         agent = ImprovementAgent(settings)
         logger.info(f"Running ImprovementAgent on {settings.code_directory}")
-        return agent.run()
+        return agent.run(output_dir=output_directory)
     except Exception as e:
         logger.error(f"Error in improvement_review: {e}")
         from multiagent_mcp_server.models import AgentReport
         return AgentReport(issues=[], review=f"Error occurred during analysis: {str(e)}")
 
 @mcp.tool()
-def documentation_generate(code_directory: Optional[str] = None) -> DocumentationOutput:
+def documentation_generate(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> DocumentationOutput:
     """
     Run the DocumentationAgent on the specified code directory.
     
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
+        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
         DocumentationOutput: Generated documentation files and review
@@ -82,7 +85,7 @@ def documentation_generate(code_directory: Optional[str] = None) -> Documentatio
         settings = Settings(code_directory=target_dir)
         agent = DocumentationAgent(settings)
         logger.info(f"Running DocumentationAgent on {settings.code_directory}")
-        return agent.generate_documentation()
+        return agent.generate_documentation(output_dir=output_directory)
     except Exception as e:
         logger.error(f"Error in documentation_generate: {e}")
         from multiagent_mcp_server.documentation_agent import DocumentationOutput
@@ -93,12 +96,13 @@ def documentation_generate(code_directory: Optional[str] = None) -> Documentatio
         )
 
 @mcp.tool()
-def critical_review(code_directory: Optional[str] = None) -> AgentReport:
+def critical_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
     """
     Run the CriticalAgent on the specified code directory.
     
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
+        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
         AgentReport: Structured report with detected critical security and reliability issues
@@ -108,19 +112,20 @@ def critical_review(code_directory: Optional[str] = None) -> AgentReport:
         settings = Settings(code_directory=target_dir)
         agent = CriticalAgent(settings)
         logger.info(f"Running CriticalAgent on {settings.code_directory}")
-        return agent.run()
+        return agent.run(output_dir=output_directory)
     except Exception as e:
         logger.error(f"Error in critical_review: {e}")
         from multiagent_mcp_server.models import AgentReport
         return AgentReport(issues=[], review=f"Error occurred during analysis: {str(e)}")
 
 @mcp.tool()
-def comprehensive_review(code_directory: Optional[str] = None) -> dict:
+def comprehensive_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> dict:
     """
     Run all agents on the specified code directory for a comprehensive analysis.
     
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
+        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
         dict: Complete analysis results from all agents
@@ -130,10 +135,10 @@ def comprehensive_review(code_directory: Optional[str] = None) -> dict:
         logger.info(f"Running comprehensive review on {target_dir}")
         
         results = {
-            "debt_analysis": debt_review(target_dir),
-            "improvement_analysis": improvement_review(target_dir),
-            "critical_analysis": critical_review(target_dir),
-            "documentation_analysis": documentation_generate(target_dir),
+            "debt_analysis": debt_review(target_dir, output_directory),
+            "improvement_analysis": improvement_review(target_dir, output_directory),
+            "critical_analysis": critical_review(target_dir, output_directory),
+            "documentation_analysis": documentation_generate(target_dir, output_directory),
             "summary": {
                 "total_issues": 0,
                 "critical_count": 0,
