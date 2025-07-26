@@ -30,13 +30,18 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-def issue_detection_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
+def issue_detection_review(
+    code_directory: Optional[str] = None,
+    output_directory: Optional[str] = None,
+    output_format: str = "md"
+) -> AgentReport:
     """
     Run unified issue detection analysis on the specified code directory.
 
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
+        output_format: "md" for markdown (default), "json" for JSON output
 
     Returns:
         AgentReport: Structured report with detected issues and recommendations
@@ -47,7 +52,7 @@ def issue_detection_review(code_directory: Optional[str] = None, output_director
         agent = IssueDetectionAgent(settings)
 
         logger.info(f"Running Unified Issue Detection Analysis on {target_dir}")
-        return agent.run(output_dir=output_directory)
+        return agent.run(output_dir=output_directory, output_format=output_format)
 
     except Exception as e:
         logger.error(f"Error in issue_detection_review: {e}")
@@ -93,7 +98,11 @@ def documentation_generate(code_directory: Optional[str] = None, output_director
 
 
 @mcp.tool()
-def comprehensive_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> dict:
+def comprehensive_review(
+    code_directory: Optional[str] = None,
+    output_directory: Optional[str] = None,
+    output_format: str = "md"
+) -> dict:
     """
     Run all agents on the specified code directory for comprehensive analysis.
 
@@ -104,6 +113,7 @@ def comprehensive_review(code_directory: Optional[str] = None, output_directory:
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
+        output_format: "md" for markdown (default), "json" for JSON output
 
     Returns:
         dict: Complete analysis results from all agents with summary statistics
@@ -114,7 +124,7 @@ def comprehensive_review(code_directory: Optional[str] = None, output_directory:
 
         # Run all analyses
         results = {
-            "issue_detection": issue_detection_review(target_dir, output_directory),
+            "issue_detection": issue_detection_review(target_dir, output_directory, output_format),
             "documentation_analysis": documentation_generate(target_dir, output_directory),
         }
 

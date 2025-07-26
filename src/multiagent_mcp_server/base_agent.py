@@ -202,17 +202,28 @@ class BaseAgent(ABC):
         }
         return type_map.get(self.agent_type, self.agent_type)
     
-    def write_output_files(self, report: AgentReport, output_dir: Path) -> Dict[str, Any]:
-        """Write agent output to JSON and Markdown files."""
+    def write_output_files_md_only(self, report: AgentReport, output_dir: Path) -> Dict[str, Any]:
+        """Write agent output to Markdown file only."""
         output_dir.mkdir(parents=True, exist_ok=True)
-        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename_prefix = self.generate_report_filename_prefix()
-        
-        json_file = output_dir / f"{filename_prefix}_{timestamp}.json"
         md_file = output_dir / f"{filename_prefix}_{timestamp}.md"
-        
-        # Write JSON file
+        md_content = self.generate_markdown_report(report, timestamp)
+        with open(md_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        logger.info(f"{self.agent_name} markdown written to: {md_file}")
+        return {
+            "markdown_file": str(md_file),
+            "total_issues": len(report.issues),
+            "agent_type": self.agent_type
+        }
+
+    def write_output_files_json_only(self, report: AgentReport, output_dir: Path) -> Dict[str, Any]:
+        """Write agent output to JSON file only."""
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename_prefix = self.generate_report_filename_prefix()
+        json_file = output_dir / f"{filename_prefix}_{timestamp}.json"
         json_data = {
             "timestamp": datetime.now().isoformat(),
             "agent_type": self.agent_type,
@@ -225,21 +236,11 @@ class BaseAgent(ABC):
                 "files_processed": getattr(self, '_files_processed', 0)
             }
         }
-        
         with open(json_file, 'w', encoding='utf-8') as f:
             json.dump(json_data, f, indent=2, ensure_ascii=False)
-        
-        # Write Markdown file
-        md_content = self.generate_markdown_report(report, timestamp)
-        with open(md_file, 'w', encoding='utf-8') as f:
-            f.write(md_content)
-        
         logger.info(f"{self.agent_name} report written to: {json_file}")
-        logger.info(f"{self.agent_name} markdown written to: {md_file}")
-        
         return {
             "json_file": str(json_file),
-            "markdown_file": str(md_file),
             "total_issues": len(report.issues),
             "agent_type": self.agent_type
         }
@@ -332,9 +333,13 @@ class BaseAgent(ABC):
         pass
     
     @handle_errors(logger=logger, context="BaseAgent.run")
-    def run(self, output_dir: Optional[str] = None) -> AgentReport:
+    def run(self, output_dir: Optional[str] = None, output_format: str = "md") -> AgentReport:
         """
         Main execution method for the agent with batch and parallel processing.
+
+        Args:
+            output_dir: Optional output directory for reports
+            output_format: "md" for markdown (default), "json" for JSON output
         """
         logger.info(f"Starting {self.agent_name} analysis...")
 
@@ -381,7 +386,13 @@ class BaseAgent(ABC):
         else:
             doc_dir = Path(self.settings.code_directory) / "DOCUMENTATION"
 
-        file_info = self.write_output_files(report, doc_dir)
+        if output_format == "json":
+            # Only write JSON file
+            file_info = self.write_output_files_json_only(report, doc_dir)
+        else:
+            # Default: write only markdown file
+            file_info = self.write_output_files_md_only(report, doc_dir)
+
         logger.info(f"{self.agent_name} analysis complete. Files written: {file_info}")
 
         return report

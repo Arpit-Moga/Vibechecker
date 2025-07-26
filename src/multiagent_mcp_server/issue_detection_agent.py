@@ -50,12 +50,13 @@ class IssueDetectionAgent(BaseAgent):
         ]
 
 @handle_errors(logger=logger, context="IssueDetectionAgent.main")
-def main(output_dir: Optional[str] = None) -> AgentReport:
+def main(output_dir: Optional[str] = None, output_format: str = "md") -> AgentReport:
     """
     Main entry point for the unified issue detection agent.
 
     Args:
         output_dir: Optional output directory override
+        output_format: "md" for markdown (default), "json" for JSON output
 
     Returns:
         AgentReport: Analysis results with detected issues
@@ -64,7 +65,7 @@ def main(output_dir: Optional[str] = None) -> AgentReport:
     agent = IssueDetectionAgent(settings)
 
     logger.info("Starting unified issue detection analysis...")
-    report = agent.run(output_dir=output_dir)
+    report = agent.run(output_dir=output_dir, output_format=output_format)
 
     logger.info("Unified issue detection analysis completed successfully")
     return report
