@@ -12,9 +12,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .debt_agent import DebtAgent
-from .improvement_agent import ImprovementAgent
-from .critical_agent import CriticalAgent
+from .issue_detection_agent import IssueDetectionAgent
 from .documentation_agent import DocumentationAgent
 from .config import Settings
 from .models import AgentReport
@@ -32,89 +30,37 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-def debt_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
+def issue_detection_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
     """
-    Run comprehensive technical debt analysis on the specified code directory.
-    
+    Run unified issue detection analysis on the specified code directory.
+
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
-        
-    Returns:
-        AgentReport: Structured report with detected technical debt issues and recommendations
-    """
-    try:
-        # Use current working directory if not specified
-        target_dir = code_directory or os.getcwd()
-        settings = Settings(code_directory=target_dir)
-        agent = DebtAgent(settings)
-        
-        logger.info(f"Running Technical Debt Analysis on {target_dir}")
-        return agent.run(output_dir=output_directory)
-        
-    except Exception as e:
-        logger.error(f"Error in debt_review: {e}")
-        # Return empty report on error
-        return AgentReport(
-            issues=[],
-            review=f"Technical debt analysis failed: {str(e)}. Please check the code directory path and try again."
-        )
 
-
-@mcp.tool()
-def improvement_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
-    """
-    Run comprehensive code improvement analysis on the specified code directory.
-    
-    Args:
-        code_directory: Path to code directory to analyze (default: current working directory)
-        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
-        
     Returns:
-        AgentReport: Structured report with detected improvement opportunities and recommendations
+        AgentReport: Structured report with detected issues and recommendations
     """
     try:
         target_dir = code_directory or os.getcwd()
         settings = Settings(code_directory=target_dir)
-        agent = ImprovementAgent(settings)
-        
-        logger.info(f"Running Code Improvement Analysis on {target_dir}")
+        agent = IssueDetectionAgent(settings)
+
+        logger.info(f"Running Unified Issue Detection Analysis on {target_dir}")
         return agent.run(output_dir=output_directory)
-        
+
     except Exception as e:
-        logger.error(f"Error in improvement_review: {e}")
+        logger.error(f"Error in issue_detection_review: {e}")
         return AgentReport(
             issues=[],
-            review=f"Code improvement analysis failed: {str(e)}. Please check the code directory path and try again."
+            review=f"Issue detection analysis failed: {str(e)}. Please check the code directory path and try again."
         )
 
 
-@mcp.tool()
-def critical_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> AgentReport:
-    """
-    Run comprehensive critical security and reliability analysis on the specified code directory.
-    
-    Args:
-        code_directory: Path to code directory to analyze (default: current working directory)
-        output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
-        
-    Returns:
-        AgentReport: Structured report with detected critical security and reliability issues
-    """
-    try:
-        target_dir = code_directory or os.getcwd()
-        settings = Settings(code_directory=target_dir)
-        agent = CriticalAgent(settings)
-        
-        logger.info(f"Running Critical Issues Analysis on {target_dir}")
-        return agent.run(output_dir=output_directory)
-        
-    except Exception as e:
-        logger.error(f"Error in critical_review: {e}")
-        return AgentReport(
-            issues=[],
-            review=f"Critical issues analysis failed: {str(e)}. Please check the code directory path and try again."
-        )
+# Removed improvement_review (now handled by unified agent)
+
+
+# Removed critical_review (now handled by unified agent)
 
 
 @mcp.tool()
@@ -150,73 +96,51 @@ def documentation_generate(code_directory: Optional[str] = None, output_director
 def comprehensive_review(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> dict:
     """
     Run all agents on the specified code directory for comprehensive analysis.
-    
+
     This tool orchestrates all available agents to provide complete coverage of:
-    - Technical debt analysis
-    - Code improvement opportunities  
-    - Critical security and reliability issues
+    - Unified issue detection
     - Documentation generation
-    
+
     Args:
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
-        
+
     Returns:
         dict: Complete analysis results from all agents with summary statistics
     """
     try:
         target_dir = code_directory or os.getcwd()
         logger.info(f"Running comprehensive multi-agent review on {target_dir}")
-        
+
         # Run all analyses
         results = {
-            "debt_analysis": debt_review(target_dir, output_directory),
-            "improvement_analysis": improvement_review(target_dir, output_directory),
-            "critical_analysis": critical_review(target_dir, output_directory),
+            "issue_detection": issue_detection_review(target_dir, output_directory),
             "documentation_analysis": documentation_generate(target_dir, output_directory),
         }
-        
-        # Calculate comprehensive summary statistics
-        total_issues = 0
-        critical_count = 0
-        debt_count = 0
-        improvement_count = 0
-        
-        for analysis_type in ["debt_analysis", "improvement_analysis", "critical_analysis"]:
-            if hasattr(results[analysis_type], 'issues'):
-                issue_count = len(results[analysis_type].issues)
-                total_issues += issue_count
-                
-                if analysis_type == "critical_analysis":
-                    critical_count = issue_count
-                elif analysis_type == "debt_analysis":
-                    debt_count = issue_count
-                elif analysis_type == "improvement_analysis":
-                    improvement_count = issue_count
-        
-        # Add summary with detailed breakdown
+
+        # Calculate summary statistics
+        total_issues = len(results["issue_detection"].issues) if hasattr(results["issue_detection"], 'issues') else 0
+        high_severity_count = len([i for i in getattr(results["issue_detection"], 'issues', []) if getattr(i, 'severity', None) == "high"])
+        documentation_files = len(results["documentation_analysis"].files) if hasattr(results["documentation_analysis"], 'files') else 0
+
         results["summary"] = {
             "total_issues": total_issues,
-            "critical_count": critical_count,
-            "debt_count": debt_count,
-            "improvement_count": improvement_count,
-            "documentation_files": len(results["documentation_analysis"].files) if hasattr(results["documentation_analysis"], 'files') else 0,
+            "high_severity_count": high_severity_count,
+            "documentation_files": documentation_files,
             "analysis_timestamp": "2025-01-26T10:25:00Z",  # Will be dynamically set
             "code_directory": target_dir
         }
-        
+
         logger.info(f"Comprehensive review completed. Total issues found: {total_issues}")
         return results
-        
+
     except Exception as e:
         logger.error(f"Error in comprehensive_review: {e}")
         return {
             "error": f"Comprehensive review failed: {str(e)}",
             "summary": {
                 "total_issues": 0,
-                "critical_count": 0,
-                "debt_count": 0,
-                "improvement_count": 0,
+                "high_severity_count": 0,
                 "documentation_files": 0,
                 "error": True
             }

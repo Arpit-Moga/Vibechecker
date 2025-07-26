@@ -22,7 +22,7 @@
    - Specify master agent and specialized agent roles
    - Define agent communication and orchestration logic
 2. **Define Pydantic Output Schemas**
-   - Create models for documentation, debt, improvement, and issue outputs
+   - Create models for documentation and unified issue outputs
    - Validate with sample data
 3. **Plan DSPy & LangChain Integration**
    - Map agent workflows to DSPy/LangChain chains
@@ -36,10 +36,8 @@
    - Implement secure protocol endpoints for codebase upload and output retrieval
    - Integrate agent orchestration logic
 2. **Implement Specialized Agents**
-   - Documentation Agent: Generates all standard professional documentation files (README, CONTRIBUTING, CODE_OF_CONDUCT, API docs, architecture, onboarding, operations, security, compliance, changelog, testing, dependencies, licenses, etc.)
-   - Debt Agent: Highlights technical debt
-   - Improvement Agent: Flags scope for improvements
-   - Critical Issue Agent: Flags urgent problems
+   - DocumentationAgent: Generates all standard professional documentation files (README, CONTRIBUTING, CODE_OF_CONDUCT, API docs, architecture, onboarding, operations, security, compliance, changelog, testing, dependencies, licenses, etc.)
+   - IssueDetectionAgent: Detects and classifies all code issues (maintainability, security, performance, compliance, other)
 3. **Integrate DSPy & LangChain**
    - Connect agents to DSPy/LangChain workflows
    - Test prompt engineering and self-improvement features

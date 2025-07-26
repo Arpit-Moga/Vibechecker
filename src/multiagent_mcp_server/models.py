@@ -11,10 +11,12 @@ from enum import Enum
 
 
 class IssueType(str, Enum):
-    """Valid issue types for agent reports."""
-    DEBT = "debt"
-    IMPROVEMENT = "improvement"
-    CRITICAL = "critical"
+    """Unified issue types for agent reports."""
+    MAINTAINABILITY = "maintainability"
+    SECURITY = "security"
+    PERFORMANCE = "performance"
+    COMPLIANCE = "compliance"
+    OTHER = "other"
 
 
 class Severity(str, Enum):
@@ -27,40 +29,36 @@ class Severity(str, Enum):
 class IssueOutput(BaseModel):
     """
     Unified issue output model for all agent types.
-    
+
     Validates that:
-    - debt/improvement issues have suggestions
-    - critical issues have remediation and high severity
+    - maintainability and performance issues have suggestions
+    - security and compliance issues have remediation steps
     """
     type: IssueType = Field(..., description="Type of issue detected")
     severity: Severity = Field(..., description="Severity level of the issue")
     description: str = Field(..., min_length=10, description="Detailed description of the issue")
     file: str = Field(..., min_length=1, description="File path where issue was found")
     line: int = Field(..., ge=1, description="Line number where issue occurs")
-    suggestion: Optional[str] = Field(None, description="Improvement suggestion for debt/improvement issues")
-    remediation: Optional[str] = Field(None, description="Remediation steps for critical issues")
+    suggestion: Optional[str] = Field(None, description="Improvement suggestion for maintainability/performance issues")
+    remediation: Optional[str] = Field(None, description="Remediation steps for security/compliance issues")
     reference: Optional[str] = Field(None, description="Reference URL or documentation")
 
     @model_validator(mode="after")
     def validate_issue_requirements(self) -> "IssueOutput":
         """Validate that required fields are present based on issue type."""
-        if self.type in [IssueType.DEBT, IssueType.IMPROVEMENT]:
+        if self.type in [IssueType.MAINTAINABILITY, IssueType.PERFORMANCE]:
             if not self.suggestion:
                 raise ValueError(f"{self.type} issues must include a suggestion")
-        
-        if self.type == IssueType.CRITICAL:
+        if self.type in [IssueType.SECURITY, IssueType.COMPLIANCE]:
             if not self.remediation:
-                raise ValueError("Critical issues must include remediation steps")
-            if self.severity != Severity.HIGH:
-                raise ValueError("Critical issues must have 'high' severity")
-        
+                raise ValueError(f"{self.type} issues must include remediation steps")
         return self
 
 
 class AgentReport(BaseModel):
-    """Standard report structure for all agents."""
-    issues: List[IssueOutput] = Field(default_factory=list, description="List of detected issues")
-    review: str = Field(..., min_length=20, description="Comprehensive review summary")
+    """Standard report structure for all issue detection agents."""
+    issues: List[IssueOutput] = Field(default_factory=list, description="List of detected issues (all types)")
+    review: str = Field(..., min_length=20, description="Comprehensive review summary for all detected issues")
     
     @field_validator('review')
     @classmethod
@@ -102,29 +100,19 @@ class DocumentationOutput(BaseModel):
 
 
 class AllAgentOutputs(BaseModel):
-    """Aggregated output from all agents."""
+    """Aggregated output from all agents (documentation and unified issue detection)."""
     documentation: DocumentationOutput = Field(..., description="Documentation generation results")
-    debt: AgentReport = Field(..., description="Technical debt analysis results")
-    improvement: AgentReport = Field(..., description="Improvement opportunities results")
-    critical: AgentReport = Field(..., description="Critical issues analysis results")
+    issues: AgentReport = Field(..., description="Unified issue detection results (all types)")
     
     @property
     def total_issues(self) -> int:
-        """Calculate total issues across all agents."""
-        return len(self.debt.issues) + len(self.improvement.issues) + len(self.critical.issues)
-    
-    @property
-    def critical_count(self) -> int:
-        """Count of critical issues."""
-        return len(self.critical.issues)
+        """Calculate total issues detected (all types)."""
+        return len(self.issues.issues)
     
     @property
     def high_severity_count(self) -> int:
-        """Count of all high severity issues."""
-        return sum(
-            len([issue for issue in report.issues if issue.severity == Severity.HIGH])
-            for report in [self.debt, self.improvement, self.critical]
-        )
+        """Count of all high severity issues (all types)."""
+        return len([issue for issue in self.issues.issues if issue.severity == Severity.HIGH])
 
 
 class AnalysisMetadata(BaseModel):

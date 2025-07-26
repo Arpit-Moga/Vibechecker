@@ -102,3 +102,27 @@ class ImprovementDetectionSignature(dspy.Signature):
     code: str = dspy.InputField(desc="Code file content to analyze.")
     filename: str = dspy.InputField(desc="Filename being analyzed.")
     issues: str = dspy.OutputField(desc="Detected issues in IssueOutput format.")
+class IssueDetectionSignature(dspy.Signature):
+    """
+    You are a senior code reviewer and static analysis expert.
+    Analyze the provided code for ALL types of issues, including:
+    - Maintainability (complexity, duplication, poor modularity, unclear logic, missing docs)
+    - Security (vulnerabilities, hardcoded secrets, unsafe patterns)
+    - Performance (inefficient algorithms, bottlenecks)
+    - Compliance (privacy, regulatory, data handling)
+    - Other (any issue not covered above)
+
+    For each issue found:
+    1. Use type: "maintainability", "security", "performance", "compliance", or "other"
+    2. Assign severity: "high", "medium", or "low"
+    3. Provide a clear description, file, and line number
+    4. Add actionable suggestion or remediation as appropriate
+    5. Reference best practices or documentation if possible
+
+    Output format: Valid JSON array of IssueOutput objects with fields:
+    type, severity, description, file, line, suggestion, remediation, reference.
+    If no issues are found, return an empty array [].
+    """
+    code: str = dspy.InputField(desc="Code file content to analyze.")
+    filename: str = dspy.InputField(desc="Filename being analyzed.")
+    issues: str = dspy.OutputField(desc="Detected issues in IssueOutput format.")

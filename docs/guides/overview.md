@@ -1,7 +1,7 @@
 # Project Overview: Multi-Agent Code Review MCP Server
 
 **Goal:**  
-Build a Python-only MCP (Model Context Protocol) server that reads an entire codebase and generates professional-grade documentation, highlights technical debt, scopes improvements, and flags critical issues. The system will use a multi-agent architecture, with a master agent orchestrating specialized agents. Output validation will be handled via pydantic, and agent prompting will be customized using dspy and langchain.
+Build a Python-only MCP (Model Context Protocol) server that reads an entire codebase and generates professional-grade documentation and unified issue analysis. The system uses a modular architecture with two main agents: one for documentation generation and one for unified issue detection (covering maintainability, security, performance, compliance, and other issues). Output validation is handled via pydantic, and agent prompting is customized using dspy and langchain.
 
 ---
 
@@ -40,16 +40,18 @@ Build a Python-only MCP (Model Context Protocol) server that reads an entire cod
    - Use FastMCP to build the server, define endpoints, and manage agent orchestration.
    - Expose APIs for codebase ingestion, agent review, and output retrieval.
 
-2. **Multi-Agent Architecture**
-   - Implement a master agent to coordinate specialized agents (documentation, technical debt, improvement scope, critical issues).
-   - Each agent focuses on a specific review task, using DSPy and LangChain for prompt customization and workflow management.
+2. **Agent Architecture**
+   - Implement two main agents: DocumentationAgent and IssueDetectionAgent.
+   - DocumentationAgent generates all professional documentation.
+   - IssueDetectionAgent detects and classifies all code issues (maintainability, security, performance, compliance, other) in a single pass.
+   - Use DSPy and LangChain for prompt customization and workflow management.
 
 3. **Professional Documentation Generation**
    - Agents analyze the codebase and generate documentation files (README, API docs, architecture guides, etc.) matching standards from large professional projects.
 
 4. **Issue Highlighting**
-   - Agents scan for technical debt, improvement opportunities, and critical issues, highlighting them (not auto-fixing).
-   - Use best practices and research to define what constitutes technical debt and critical issues.
+   - The IssueDetectionAgent scans for all types of issues, highlighting them (not auto-fixing).
+   - Uses best practices and research to define what constitutes maintainability, security, performance, and compliance issues.
 
 5. **Output Validation**
    - All agent outputs are validated and serialized using pydantic models, ensuring consistency and reliability.
@@ -63,10 +65,8 @@ Build a Python-only MCP (Model Context Protocol) server that reads an entire cod
 
 1. **User uploads codebase to MCP server.**
 2. **Master agent triggers specialized agents:**
-   - Documentation Agent: Generates professional docs.
-   - Debt Agent: Highlights technical debt.
-   - Improvement Agent: Flags scope for improvements.
-   - Critical Issue Agent: Flags urgent problems.
+   - DocumentationAgent: Generates professional docs.
+   - IssueDetectionAgent: Detects and classifies all code issues (maintainability, security, performance, compliance, other).
 3. **Agents use DSPy and LangChain for advanced prompting and workflow composition.**
 4. **All outputs are validated via pydantic and returned to the user in structured formats.**
 

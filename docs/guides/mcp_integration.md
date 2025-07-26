@@ -29,10 +29,8 @@ Add this to your MCP configuration file (e.g., `mcp_settings.json`):
       "cwd": "/path/to/multi-agent-mcp-server",
       "disabled": false,
       "alwaysAllow": [
-        "debt_review",
-        "improvement_review", 
+        "issue_detection_review",
         "documentation_generate",
-        "critical_review",
         "comprehensive_review"
       ],
       "description": "Multi-agent code review and documentation system"
@@ -49,25 +47,15 @@ Restart your MCP-compatible AI assistant (Roo, Cline, etc.) to load the new serv
 
 Once configured, you'll have access to these MCP tools:
 
-### `debt_review`
-- **Purpose**: Analyze technical debt in your codebase
-- **Usage**: "Analyze this project for technical debt"
-- **Returns**: Structured report with debt issues and suggestions
+### `issue_detection_review`
+- **Purpose**: Detect and classify all code issues (maintainability, security, performance, compliance, other)
+- **Usage**: "Analyze this project for code issues"
+- **Returns**: Structured report with all detected issues and recommendations
 
-### `improvement_review`
-- **Purpose**: Find improvement opportunities
-- **Usage**: "What improvements can be made to this code?"
-- **Returns**: Detailed improvement recommendations
-
-### `documentation_generate` 
+### `documentation_generate`
 - **Purpose**: Generate comprehensive project documentation
 - **Usage**: "Generate documentation for this project"
 - **Returns**: Complete documentation suite (README, CONTRIBUTING, etc.)
-
-### `critical_review`
-- **Purpose**: Identify critical security and reliability issues
-- **Usage**: "Check this code for critical issues"
-- **Returns**: High-priority security and reliability findings
 
 ### `comprehensive_review`
 - **Purpose**: Run all analyses together
@@ -78,9 +66,8 @@ Once configured, you'll have access to these MCP tools:
 
 Once set up, you can use natural language with your AI assistant:
 
-- "Analyze the current directory for technical debt"
+- "Analyze the current directory for code issues"
 - "Generate documentation for my Python project"
-- "Check this codebase for critical security issues"
 - "Perform a complete code review of the src/ directory"
 
 ## Configuration Options
