@@ -27,7 +27,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-from multiagent_mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
+from .config import Settings
+from .agent_utils import SupportedFileType, CodeFile, FileProcessor
 
 class DocumentationType(str, Enum):
     """Types of documentation that can be generated."""
@@ -409,23 +410,6 @@ def main(output_dir: Optional[str] = None):
         
         logger.info("Starting documentation generation...")
         output = agent.generate_documentation(output_dir=output_dir)
-        
-        # Also display results to console for backwards compatibility
-        print("\n" + "="*80)
-        print("DOCUMENTATION GENERATION COMPLETE")
-        print("="*80)
-        
-        for file_name, doc_file in output.files.items():
-            print(f"\n--- {file_name} ---")
-            preview = doc_file.content[:3000] + "..." if len(doc_file.content) > 3000 else doc_file.content
-            print(preview)
-        
-        print(f"\n--- REVIEW REPORT ---")
-        print(output.review)
-        
-        print(f"\n--- METADATA ---")
-        for key, value in output.metadata.items():
-            print(f"{key}: {value}")
         
         logger.info("Documentation generation completed successfully")
         return output

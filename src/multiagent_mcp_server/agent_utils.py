@@ -28,41 +28,8 @@ class TemplateFile(BaseModel):
     content: str = Field(..., description="Template content")
     doc_type: DocumentationType = Field(..., description="Documentation type")
 
-@dataclass
-class Settings:
-    """Settings for agent configuration."""
-    code_directory: str = "Example-project"
-    template_directory: str = "templates"
-    max_file_size_mb: float = 5.0
-    max_files_to_process: int = 100
-    google_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    
-    def __post_init__(self):
-        # Override with environment variables if available
-        env_code_dir = os.getenv("CODE_DIRECTORY")
-        if env_code_dir:
-            self.code_directory = env_code_dir
-            
-        env_template_dir = os.getenv("TEMPLATE_DIRECTORY")
-        if env_template_dir:
-            self.template_directory = env_template_dir
-            
-        env_max_size = os.getenv("MAX_FILE_SIZE_MB")
-        if env_max_size:
-            self.max_file_size_mb = float(env_max_size)
-            
-        env_max_files = os.getenv("MAX_FILES_TO_PROCESS")
-        if env_max_files:
-            self.max_files_to_process = int(env_max_files)
-            
-        env_google_key = os.getenv("GOOGLE_API_KEY")
-        if env_google_key:
-            self.google_api_key = env_google_key
-            
-        env_openai_key = os.getenv("OPENAI_API_KEY")
-        if env_openai_key:
-            self.openai_api_key = env_openai_key
+# Import Settings from the new centralized config
+from .config import Settings
 
 class CodeFile(BaseModel):
     name: str = Field(...)
