@@ -15,7 +15,7 @@ from .config import Settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
-from .prompt_templates import DEBT_PROMPT_TEMPLATE
+from .prompt_signatures import DebtDetectionSignature
 
 
 class DebtAgent(BaseAgent):
@@ -38,9 +38,10 @@ class DebtAgent(BaseAgent):
         """Return the human-readable agent name."""
         return "Technical Debt Analyzer"
     
-    def get_detection_prompt(self) -> str:
-        """Return the LLM prompt for technical debt detection."""
-        return DEBT_PROMPT_TEMPLATE
+    def create_detector(self):
+        """Create and return the debt issue detector using dspy.Signature."""
+        from .base_agent import BaseIssueDetector
+        return BaseIssueDetector(DebtDetectionSignature)
     
     def get_expected_issue_types(self) -> List[IssueType]:
         """Return the issue types this agent should detect."""

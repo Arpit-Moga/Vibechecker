@@ -45,10 +45,10 @@ class BaseIssueDetector(dspy.Module):
         super().__init__()
         self.detect = dspy.ChainOfThought(detection_signature)
     
-    def forward(self, code: str, filename: str, prompt: str) -> str:
+    def forward(self, code: str, filename: str) -> str:
         """Detect issues in code using LLM."""
         try:
-            result = self.detect(code=code, filename=filename, prompt=prompt)
+            result = self.detect(code=code, filename=filename)
             return result.issues
         except Exception as e:
             logger.error(f"Error in LLM-based issue detection for {filename}: {e}")
@@ -129,10 +129,7 @@ class BaseAgent(ABC):
         """Return the human-readable name of the agent."""
         pass
     
-    @abstractmethod
-    def get_detection_prompt(self) -> str:
-        """Return the LLM prompt for issue detection."""
-        pass
+    # get_detection_prompt is removed; prompt logic is now handled by dspy.Signature and dspy.Module.
     
     @abstractmethod
     def get_expected_issue_types(self) -> List[IssueType]:
@@ -140,8 +137,8 @@ class BaseAgent(ABC):
         pass
     
     def create_detector(self) -> BaseIssueDetector:
-        """Create and return the issue detector."""
-        return BaseIssueDetector()
+        """Create and return the issue detector. Subclasses must specify the correct signature."""
+        raise NotImplementedError("Subclasses must implement create_detector to specify the correct dspy.Signature.")
     
     def create_reviewer(self) -> BaseIssueReviewer:
         """Create and return the issue reviewer."""
@@ -159,14 +156,12 @@ class BaseAgent(ABC):
         return "\n".join(formatted)
     
     def detect_issues_in_file(self, code_file: CodeFile) -> List[IssueOutput]:
-        """Detect issues in a single code file."""
-        prompt = self.get_detection_prompt()
+        """Detect issues in a single code file using dspy.Signature and dspy.Module."""
         llm_result = self.detector.forward(
             code=code_file.content,
-            filename=code_file.name,
-            prompt=prompt
+            filename=code_file.name
         )
-        
+
         # Parse LLM output
         detected_issues = []
         if llm_result.strip():
@@ -184,7 +179,7 @@ class BaseAgent(ABC):
                         logger.warning(f"Invalid issue output in {code_file.name}: {e}")
             except json.JSONDecodeError:
                 logger.warning(f"Malformed JSON output from {self.agent_type} agent for {code_file.name}")
-        
+
         return detected_issues
     
     def review_issues(self, issues: List[IssueOutput]) -> str:

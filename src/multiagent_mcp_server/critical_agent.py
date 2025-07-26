@@ -15,7 +15,7 @@ from .config import Settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
-from .prompt_templates import CRITICAL_PROMPT_TEMPLATE
+from .prompt_signatures import CriticalDetectionSignature
 
 
 class CriticalAgent(BaseAgent):
@@ -39,9 +39,10 @@ class CriticalAgent(BaseAgent):
         """Return the human-readable agent name."""
         return "Critical Issues Analyzer"
     
-    def get_detection_prompt(self) -> str:
-        """Return the LLM prompt for critical issue detection."""
-        return CRITICAL_PROMPT_TEMPLATE
+    def create_detector(self):
+        """Create and return the critical issue detector using dspy.Signature."""
+        from .base_agent import BaseIssueDetector
+        return BaseIssueDetector(CriticalDetectionSignature)
     
     def get_expected_issue_types(self) -> List[IssueType]:
         """Return the issue types this agent should detect."""

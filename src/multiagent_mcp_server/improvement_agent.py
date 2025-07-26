@@ -11,7 +11,7 @@ from typing import List, Optional
 from .base_agent import BaseAgent
 from .models import IssueType, AgentReport
 from .config import Settings
-from .prompt_templates import IMPROVEMENT_PROMPT_TEMPLATE
+from .prompt_signatures import ImprovementDetectionSignature
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -38,9 +38,10 @@ class ImprovementAgent(BaseAgent):
         """Return the human-readable agent name."""
         return "Code Improvement Analyzer"
     
-    def get_detection_prompt(self) -> str:
-        """Return the LLM prompt for improvement opportunity detection."""
-        return IMPROVEMENT_PROMPT_TEMPLATE
+    def create_detector(self):
+        """Create and return the improvement issue detector using dspy.Signature."""
+        from .base_agent import BaseIssueDetector
+        return BaseIssueDetector(ImprovementDetectionSignature)
     
     def get_expected_issue_types(self) -> List[IssueType]:
         """Return the issue types this agent should detect."""
