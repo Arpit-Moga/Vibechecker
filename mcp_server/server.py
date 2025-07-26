@@ -112,4 +112,83 @@ def http_exception_handler(request, exc):
 
 # All endpoints strictly follow architecture.md standards
 # No persistent storage of agent outputs
-# Ready for orchestration integration and testing
+# Ready for orchestration integration and testing   
+
+import shutil
+import tempfile
+from fastapi import Body
+from mcp_server.debt_agent import DebtAgent
+from mcp_server.improvement_agent import ImprovementAgent
+from mcp_server.documentation_agent import DocumentationAgent
+# from mcp_server.critical_agent import CriticalAgent  # Uncomment when available
+from mcp_server.agent_utils import Settings
+
+class FilePathRequest(BaseModel):
+    file_path: str
+
+@app.post("/debt")
+async def run_debt_agent(request: FilePathRequest = Body(...)):
+    """
+    Run the DebtAgent on a single file.
+    """
+    file_path = request.file_path
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=400, detail="File not found.")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
+        shutil.copy(file_path, dest_path)
+        settings = Settings(code_directory=temp_dir)
+        agent = DebtAgent(settings)
+        output = agent.run()
+        return JSONResponse(output.model_dump())
+
+@app.post("/improvement")
+async def run_improvement_agent(request: FilePathRequest = Body(...)):
+    """
+    Run the ImprovementAgent on a single file.
+    """
+    file_path = request.file_path
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=400, detail="File not found.")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
+        shutil.copy(file_path, dest_path)
+        settings = Settings(code_directory=temp_dir)
+        agent = ImprovementAgent(settings)
+        output = agent.run()
+        return JSONResponse(output.model_dump())
+
+@app.post("/documentation")
+async def run_documentation_agent(request: FilePathRequest = Body(...)):
+    """
+    Run the DocumentationAgent on a single file.
+    """
+    file_path = request.file_path
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=400, detail="File not found.")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
+        shutil.copy(file_path, dest_path)
+        settings = Settings(code_directory=temp_dir)
+        agent = DocumentationAgent(settings)
+        output = agent.generate_documentation()
+        return JSONResponse(output.model_dump())
+
+@app.post("/critical")
+async def run_critical_agent(request: FilePathRequest = Body(...)):
+    """
+    Run the CriticalAgent on a single file.
+    """
+    file_path = request.file_path
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=400, detail="File not found.")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
+        shutil.copy(file_path, dest_path)
+        # Uncomment and implement when CriticalAgent is available
+        # settings = Settings(code_directory=temp_dir)
+        # agent = CriticalAgent(settings)
+        # output = agent.run()
+        # return JSONResponse(output.model_dump())
+        return JSONResponse({"status": "CriticalAgent not implemented yet."})
+
