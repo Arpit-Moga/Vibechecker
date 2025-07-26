@@ -11,6 +11,7 @@ from typing import List, Optional
 from .base_agent import BaseAgent
 from .models import IssueType, AgentReport
 from .config import Settings
+from .prompt_templates import IMPROVEMENT_PROMPT_TEMPLATE
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -39,38 +40,7 @@ class ImprovementAgent(BaseAgent):
     
     def get_detection_prompt(self) -> str:
         """Return the LLM prompt for improvement opportunity detection."""
-        return (
-            "You are an expert code reviewer specializing in identifying improvement opportunities. "
-            "Analyze this code for areas where quality, performance, maintainability, or "
-            "best practices could be enhanced.\n\n"
-            
-            "Focus on detecting:\n"
-            "- Performance optimization opportunities\n"
-            "- Code readability and clarity improvements\n"
-            "- Better error handling implementations\n"
-            "- More efficient algorithms or data structures\n"
-            "- Enhanced code documentation\n"
-            "- Better type safety and validation\n"
-            "- Improved testing strategies\n"
-            "- Modern language features that could be utilized\n"
-            "- Security enhancements\n\n"
-            
-            "Severity guidelines:\n"
-            "- 'high': Improvements with significant impact on performance, security, "
-            "or maintainability\n"
-            "- 'medium': Moderate improvements that enhance code quality or developer experience\n"
-            "- 'low': Minor style improvements or best practice suggestions\n\n"
-            
-            "For each improvement opportunity found:\n"
-            "1. Use type 'improvement' for all optimization and enhancement suggestions\n"
-            "2. Provide specific, actionable improvement recommendations\n"
-            "3. Explain the expected benefits of implementing the improvement\n"
-            "4. Reference relevant best practices or performance patterns when applicable\n\n"
-            
-            "Output format: Valid JSON array of IssueOutput objects with fields: "
-            "type, severity, description, file, line, suggestion, reference.\n"
-            "If no improvement opportunities are found, return an empty array []."
-        )
+        return IMPROVEMENT_PROMPT_TEMPLATE
     
     def get_expected_issue_types(self) -> List[IssueType]:
         """Return the issue types this agent should detect."""

@@ -15,6 +15,8 @@ from .config import Settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
+from .prompt_templates import DEBT_PROMPT_TEMPLATE
+
 
 class DebtAgent(BaseAgent):
     """
@@ -38,38 +40,7 @@ class DebtAgent(BaseAgent):
     
     def get_detection_prompt(self) -> str:
         """Return the LLM prompt for technical debt detection."""
-        return (
-            "You are a senior code reviewer specializing in technical debt analysis. "
-            "Analyze this code for technical debt issues that impact maintainability, "
-            "scalability, and future development velocity.\n\n"
-            
-            "Focus on detecting:\n"
-            "- Large, complex functions that are hard to maintain\n"
-            "- Duplicated code patterns\n"
-            "- Poor modularity and tight coupling\n"
-            "- Hardcoded values that should be configurable\n"
-            "- Missing or inadequate tests\n"
-            "- Inconsistent naming conventions\n"
-            "- Unclear or convoluted logic\n"
-            "- Missing documentation for complex code\n\n"
-            
-            "Severity guidelines:\n"
-            "- 'high': Issues that significantly hinder maintainability, scalability, "
-            "or future development (large functions, major duplication, poor architecture)\n"
-            "- 'medium': Issues causing moderate development friction "
-            "(inconsistent patterns, missing docstrings, minor coupling)\n"
-            "- 'low': Minor style or convention issues that don't impact functionality\n\n"
-            
-            "For each technical debt issue found:\n"
-            "1. Use type 'debt' for maintainability/architecture issues\n"
-            "2. Include specific, actionable suggestions for improvement\n"
-            "3. Provide a brief justification for the severity rating\n"
-            "4. Reference relevant best practices or standards when applicable\n\n"
-            
-            "Output format: Valid JSON array of IssueOutput objects with fields: "
-            "type, severity, description, file, line, suggestion, reference.\n"
-            "If no technical debt is found, return an empty array []."
-        )
+        return DEBT_PROMPT_TEMPLATE
     
     def get_expected_issue_types(self) -> List[IssueType]:
         """Return the issue types this agent should detect."""
