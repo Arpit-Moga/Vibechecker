@@ -1,2 +1,0 @@
-[console_scripts]
-multiagent-mcp-server = mcp_server.server:main

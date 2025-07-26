@@ -1,25 +1,155 @@
 [project]
 name = "multiagent-mcp-server"
 version = "0.1.0"
-description = "Production-ready MCP server exposing multi-agent code review tools."
+description = "Production-ready multi-agent MCP server for automated codebase review, documentation, and improvement."
 authors = [
-    { name = "Your Name", email = "your@email.com" }
+    { name = "Multi-Agent MCP Server Contributors", email = "contact@example.com" }
 ]
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
+keywords = ["mcp", "multi-agent", "code-review", "documentation", "ai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "mcp[cli]>=1.12.2",
     "httpx>=0.27.0",
-    "dspy",
-    "pydantic>=2.0.0"
+    "dspy-ai>=2.4.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "python-multipart>=0.0.6",
 ]
 
-[project.scripts]
-multiagent-mcp-server = "mcp_server.server:main"
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+docs = [
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocs-mermaid2-plugin>=0.6.0",
+]
+langchain = [
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+]
 
-[tool.uv]
-# uv-specific config if needed
+[project.urls]
+Homepage = "https://github.com/your-org/multi-agent-mcp-server"
+Documentation = "https://github.com/your-org/multi-agent-mcp-server/tree/main/docs"
+Repository = "https://github.com/your-org/multi-agent-mcp-server"
+Issues = "https://github.com/your-org/multi-agent-mcp-server/issues"
+Changelog = "https://github.com/your-org/multi-agent-mcp-server/blob/main/CHANGELOG.md"
+
+[project.scripts]
+multiagent-mcp-server = "multiagent_mcp_server.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+multiagent_mcp_server = ["py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["multiagent_mcp_server"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dspy.*",
+    "langchain.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
