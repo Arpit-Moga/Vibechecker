@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-from mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
+from multiagent_mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
 
 class DocumentationType(str, Enum):
     """Types of documentation that can be generated."""

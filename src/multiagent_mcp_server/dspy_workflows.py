@@ -4,11 +4,11 @@ Implements agent orchestration, output aggregation, and validation using DSPy be
 Strictly follows project models and error handling requirements.
 """
 
-from mcp_server.documentation_agent import run_documentation_agent
-from mcp_server.debt_agent import run_debt_agent
-from mcp_server.improvement_agent import run_improvement_agent
-from mcp_server.critical_agent import run_critical_agent
-from mcp_server.models import AllAgentOutputs, DocumentationOutput, AgentReport
+from multiagent_mcp_server.documentation_agent import run_documentation_agent
+from multiagent_mcp_server.debt_agent import run_debt_agent
+from multiagent_mcp_server.improvement_agent import run_improvement_agent
+from multiagent_mcp_server.critical_agent import run_critical_agent
+from multiagent_mcp_server.models import AllAgentOutputs, DocumentationOutput, AgentReport
 from pydantic import ValidationError
 
 class DSPyAgentWorkflow:

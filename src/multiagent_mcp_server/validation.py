@@ -3,7 +3,7 @@ Output serialization and validation logic for agent workflows
 Strictly uses pydantic models and handles validation errors/edge cases
 """
 from typing import Type
-from mcp_server.models import AllAgentOutputs, DocumentationOutput, AgentReport, IssueOutput
+from multiagent_mcp_server.models import AllAgentOutputs, DocumentationOutput, AgentReport, IssueOutput
 from pydantic import ValidationError, BaseModel
 
 class OutputValidator:

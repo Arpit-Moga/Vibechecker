@@ -8,7 +8,7 @@ import logging
 import os
 from typing import List, Optional
 from pydantic import ValidationError
-from mcp_server.models import IssueOutput, AgentReport
+from multiagent_mcp_server.models import IssueOutput, AgentReport
 import dspy
 from pathlib import Path
 from enum import Enum
@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
+from multiagent_mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
 
 class ImprovementDetectionSignature(dspy.Signature):
     """DSPy signature for LLM-based improvement detection."""

@@ -12,10 +12,10 @@ import logging
 import os
 from typing import List, Optional
 from pydantic import ValidationError
-from mcp_server.models import IssueOutput, AgentReport
+from multiagent_mcp_server.models import IssueOutput, AgentReport
 import dspy
 from pathlib import Path
-from mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
+from multiagent_mcp_server.agent_utils import SupportedFileType, Settings, CodeFile, FileProcessor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
