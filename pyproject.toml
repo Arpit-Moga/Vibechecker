@@ -1,0 +1,25 @@
+[project]
+name = "multiagent-mcp-server"
+version = "0.1.0"
+description = "Production-ready MCP server exposing multi-agent code review tools."
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.12.2",
+    "httpx>=0.27.0",
+    "dspy",
+    "pydantic>=2.0.0"
+]
+
+[project.scripts]
+multiagent-mcp-server = "mcp_server.server:main"
+
+[tool.uv]
+# uv-specific config if needed
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

@@ -1,194 +1,74 @@
-import os
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import List, Optional
-
-app = FastAPI(title="MCP Server (Phase-3)")
-
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
-
-# In-memory storage for codebases and reviews (no persistence)
-codebases = {}
-reviews = {}
-
-class CodeFile(BaseModel):
-    path: str
-    content: str
-
-class Codebase(BaseModel):
-    repo_url: Optional[str]
-    files: List[CodeFile]
-
-class ReviewRequest(BaseModel):
-    id: str
-
-@app.post("/upload_codebase")
-async def upload_codebase(request: Request, codebase: UploadFile = File(...)):
-    """
-    Endpoint: /upload_codebase
-    Method: POST
-    Payload: multipart/form-data, field name 'codebase' (zip/tar/directory)
-    Max file size: 500MB
-    Response: {"status": "uploaded", "id": "<codebase_id>"}
-    Error codes: 400, 413, 500
-    """
-    contents = await codebase.read()
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="Payload too large. Max 500MB allowed.")
-    codebase_id = f"cb_{len(codebases)+1}"
-    codebases[codebase_id] = contents  # Store raw bytes (no persistence)
-    return JSONResponse({"status": "uploaded", "id": codebase_id})
-
-@app.post("/trigger_review")
-async def trigger_review(req: ReviewRequest):
-    """
-    Endpoint: /trigger_review
-    Method: POST
-    Payload: {"id": "<codebase_id>"}
-    Triggers agent review sequence
-    Response: {"status": "review_started", "id": "<review_id>"}
-    Error codes: 400, 404, 500
-    """
-    codebase_id = req.id
-    if codebase_id not in codebases:
-        raise HTTPException(status_code=404, detail="Codebase not found.")
-    review_id = f"rv_{len(reviews)+1}"
-    # Placeholder agent outputs (to be replaced by orchestration logic)
-    reviews[review_id] = {
-        "documentation": {"README.md": "Sample README content."},
-        "debt": [
-            {
-                "type": "debt",
-                "severity": "low",
-                "description": "Sample technical debt issue.",
-                "file": "main.py",
-                "line": 10,
-                "suggestion": "Refactor function.",
-                "reference": "https://example.com/debt"
-            }
-        ],
-        "improvement": [
-            {
-                "type": "improvement",
-                "severity": "medium",
-                "description": "Sample improvement opportunity.",
-                "file": "utils.py",
-                "line": 5,
-                "suggestion": "Optimize loop.",
-                "reference": "https://example.com/improvement"
-            }
-        ],
-        "critical": [
-            {
-                "type": "critical",
-                "severity": "high",
-                "description": "Sample critical issue.",
-                "file": "security.py",
-                "line": 42,
-                "remediation": "Fix authentication bug.",
-                "reference": "https://example.com/critical"
-            }
-        ]
-    }
-    return JSONResponse({"status": "review_started", "id": review_id})
-
-@app.get("/get_results")
-async def get_results(id: str):
-    """
-    Endpoint: /get_results
-    Method: GET
-    Query param: id=<review_id>
-    Response: {"documentation": {...}, "debt": [...], "improvement": [...], "critical": [...]}
-    Error codes: 400, 404, 500
-    """
-    if id not in reviews:
-        raise HTTPException(status_code=404, detail="Review not found.")
-    return JSONResponse(reviews[id])
-
-@app.exception_handler(HTTPException)
-def http_exception_handler(request, exc):
-    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
-
-# All endpoints strictly follow architecture.md standards
-# No persistent storage of agent outputs
-# Ready for orchestration integration and testing   
-
-import shutil
-import tempfile
-from fastapi import Body
+"""
+MCP-enabled server using FastMCP, exposing agent tools as MCP tools.
+"""
+from mcp.server.fastmcp import FastMCP
 from mcp_server.debt_agent import DebtAgent
 from mcp_server.improvement_agent import ImprovementAgent
 from mcp_server.documentation_agent import DocumentationAgent
-# from mcp_server.critical_agent import CriticalAgent  # Uncomment when available
+from mcp_server.critical_agent import CriticalAgent
 from mcp_server.agent_utils import Settings
+from mcp_server.models import AgentReport, DocumentationOutput
+from typing import Optional
+import logging
 
-class FilePathRequest(BaseModel):
-    file_path: str
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-@app.post("/debt")
-async def run_debt_agent(request: FilePathRequest = Body(...)):
-    """
-    Run the DebtAgent on a single file.
-    """
-    file_path = request.file_path
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=400, detail="File not found.")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
-        shutil.copy(file_path, dest_path)
-        settings = Settings(code_directory=temp_dir)
-        agent = DebtAgent(settings)
-        output = agent.run()
-        return JSONResponse(output.model_dump())
+# Create the MCP server
+mcp = FastMCP("Multi-Agent MCP Server")
 
-@app.post("/improvement")
-async def run_improvement_agent(request: FilePathRequest = Body(...)):
+@mcp.tool()
+def debt_review(code_directory: Optional[str] = None) -> AgentReport:
     """
-    Run the ImprovementAgent on a single file.
+    Run the DebtAgent on the specified code directory (default: Example-project).
+    Returns a structured AgentReport with all detected technical debt issues and review.
     """
-    file_path = request.file_path
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=400, detail="File not found.")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
-        shutil.copy(file_path, dest_path)
-        settings = Settings(code_directory=temp_dir)
-        agent = ImprovementAgent(settings)
-        output = agent.run()
-        return JSONResponse(output.model_dump())
+    settings = Settings(code_directory=code_directory or "Example-project")
+    agent = DebtAgent(settings)
+    logger.info(f"Running DebtAgent on {settings.code_directory}")
+    return agent.run()
 
-@app.post("/documentation")
-async def run_documentation_agent(request: FilePathRequest = Body(...)):
+@mcp.tool()
+def improvement_review(code_directory: Optional[str] = None) -> AgentReport:
     """
-    Run the DocumentationAgent on a single file.
+    Run the ImprovementAgent on the specified code directory (default: Example-project).
+    Returns a structured AgentReport with all detected improvement opportunities and review.
     """
-    file_path = request.file_path
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=400, detail="File not found.")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
-        shutil.copy(file_path, dest_path)
-        settings = Settings(code_directory=temp_dir)
-        agent = DocumentationAgent(settings)
-        output = agent.generate_documentation()
-        return JSONResponse(output.model_dump())
+    settings = Settings(code_directory=code_directory or "Example-project")
+    agent = ImprovementAgent(settings)
+    logger.info(f"Running ImprovementAgent on {settings.code_directory}")
+    return agent.run()
 
-@app.post("/critical")
-async def run_critical_agent(request: FilePathRequest = Body(...)):
+@mcp.tool()
+def documentation_generate(code_directory: Optional[str] = None) -> DocumentationOutput:
     """
-    Run the CriticalAgent on a single file.
+    Run the DocumentationAgent on the specified code directory (default: Example-project).
+    Returns a structured DocumentationOutput with generated documentation and review.
     """
-    file_path = request.file_path
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=400, detail="File not found.")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest_path = os.path.join(temp_dir, os.path.basename(file_path))
-        shutil.copy(file_path, dest_path)
-        # Uncomment and implement when CriticalAgent is available
-        # settings = Settings(code_directory=temp_dir)
-        # agent = CriticalAgent(settings)
-        # output = agent.run()
-        # return JSONResponse(output.model_dump())
-        return JSONResponse({"status": "CriticalAgent not implemented yet."})
+    settings = Settings(code_directory=code_directory or "Example-project")
+    agent = DocumentationAgent(settings)
+    logger.info(f"Running DocumentationAgent on {settings.code_directory}")
+    return agent.generate_documentation()
 
+@mcp.tool()
+def critical_review(code_directory: Optional[str] = None) -> AgentReport:
+    """
+    Run the CriticalAgent on the specified code directory (default: Example-project).
+    Returns a structured AgentReport with all detected critical issues and review.
+    """
+    settings = Settings(code_directory=code_directory or "Example-project")
+    agent = CriticalAgent(settings)
+    logger.info(f"Running CriticalAgent on {settings.code_directory}")
+    return agent.run()
+
+
+def main():
+    """
+    Entry point for running the MCP server. Uses streamable-http transport by default.
+    """
+    logger.info("Starting MCP server with FastMCP...")
+    mcp.run(transport="streamable-http")
+
+if __name__ == "__main__":
+    main()
