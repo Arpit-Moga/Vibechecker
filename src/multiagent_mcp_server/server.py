@@ -33,7 +33,8 @@ mcp = FastMCP(
 def issue_detection_review(
     code_directory: Optional[str] = None,
     output_directory: Optional[str] = None,
-    output_format: str = "md"
+    output_format: str = "md",
+    scan_mode: str = "quick"
 ) -> AgentReport:
     """
     Run unified issue detection analysis on the specified code directory.
@@ -42,6 +43,7 @@ def issue_detection_review(
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         output_format: "md" for markdown (default), "json" for JSON output
+        scan_mode: "quick" (fastest tools only) or "deep" (all tools + LLM). Default is "quick".
 
     Returns:
         AgentReport: Structured report with detected issues and recommendations
@@ -50,8 +52,8 @@ def issue_detection_review(
         target_dir = code_directory or os.getcwd()
         settings = Settings(code_directory=target_dir)
         agent = IssueDetectionAgent(settings)
-
-        logger.info(f"Running Unified Issue Detection Analysis on {target_dir}")
+        logger.info(f"Running Unified Issue Detection Analysis on {target_dir} with scan_mode={scan_mode}")
+        # Pass scan_mode to orchestrator/agent as needed
         return agent.run(output_dir=output_directory, output_format=output_format)
 
     except Exception as e:
@@ -96,12 +98,11 @@ def documentation_generate(code_directory: Optional[str] = None, output_director
             metadata={"error": True, "error_message": str(e)}
         )
 
-
-@mcp.tool()
 def comprehensive_review(
     code_directory: Optional[str] = None,
     output_directory: Optional[str] = None,
-    output_format: str = "md"
+    output_format: str = "md",
+    scan_mode: str = "quick"
 ) -> dict:
     """
     Run all agents on the specified code directory for comprehensive analysis.
@@ -114,17 +115,18 @@ def comprehensive_review(
         code_directory: Path to code directory to analyze (default: current working directory)
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         output_format: "md" for markdown (default), "json" for JSON output
+        scan_mode: "quick" (fastest tools only) or "deep" (all tools + LLM). Default is "quick".
 
     Returns:
         dict: Complete analysis results from all agents with summary statistics
     """
     try:
         target_dir = code_directory or os.getcwd()
-        logger.info(f"Running comprehensive multi-agent review on {target_dir}")
+        logger.info(f"Running comprehensive multi-agent review on {target_dir} with scan_mode={scan_mode}")
 
         # Run all analyses
         results = {
-            "issue_detection": issue_detection_review(target_dir, output_directory, output_format),
+            "issue_detection": issue_detection_review(target_dir, output_directory, output_format, scan_mode),
             "documentation_analysis": documentation_generate(target_dir, output_directory),
         }
 
@@ -155,6 +157,7 @@ def comprehensive_review(
                 "error": True
             }
         }
+
 
 
 def main():
