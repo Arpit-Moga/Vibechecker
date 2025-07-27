@@ -13,42 +13,57 @@ class MypyPlugin(StaticAnalysisPlugin):
     def run(self, files: List[str], config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         if not files:
             return []
-        # Mypy supports JSON output with --show-error-codes --no-color-output --no-error-summary --error-format=json
-        cmd = ["mypy", "--show-error-codes", "--no-color-output", "--no-error-summary", "--error-format=json"] + files
+        # Check mypy version for --error-format=json support
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            output = json.loads(result.stdout)
-            findings = []
-            for item in output.get("errors", []):
-                findings.append({
-                    "file": item.get("path"),
-                    "line": item.get("line"),
-                    "severity": "error" if item.get("severity") == "error" else "note",
-                    "message": item.get("message"),
-                    "tool": "mypy"
-                })
-            return findings
-        except subprocess.CalledProcessError as e:
-            # mypy returns nonzero exit code if errors found, but still outputs JSON
+            version_result = subprocess.run(["mypy", "--version"], capture_output=True, text=True)
+            version_str = version_result.stdout.strip().split()[-1]
+            major, minor, *_ = map(int, version_str.split("."))
+            supports_json = (major, minor) >= (1, 0)
+        except Exception:
+            supports_json = False
+
+        if supports_json:
+            cmd = ["mypy", "--error-format=json"] + files
             try:
-                output = json.loads(e.stdout)
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                output = json.loads(result.stdout)
                 findings = []
                 for item in output.get("errors", []):
                     findings.append({
                         "file": item.get("path"),
                         "line": item.get("line"),
-                        "severity": "error" if item.get("severity") == "error" else "note",
+                        "severity": item.get("severity", "error"),
                         "message": item.get("message"),
                         "tool": "mypy"
                     })
                 return findings
-            except Exception:
+            except Exception as e:
                 return [{
                     "tool": "mypy",
-                    "error": e.stderr or str(e)
+                    "error": str(e)
                 }]
-        except Exception as e:
-            return [{
-                "tool": "mypy",
-                "error": str(e)
-            }]
+        else:
+            # Fallback: parse plain text output for older mypy
+            cmd = ["mypy"] + files
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                findings = []
+                for line in result.stdout.splitlines():
+                    # Example: path/to/file.py:12: error: Incompatible types in assignment (expression has type "int", variable has type "str")
+                    if ":" in line:
+                        parts = line.split(":", 3)
+                        if len(parts) >= 4:
+                            file, line_no, _col, message = parts
+                            findings.append({
+                                "file": file.strip(),
+                                "line": int(line_no.strip()),
+                                "severity": "error",
+                                "message": message.strip(),
+                                "tool": "mypy"
+                            })
+                return findings
+            except Exception as e:
+                return [{
+                    "tool": "mypy",
+                    "error": str(e)
+                }]

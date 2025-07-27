@@ -64,11 +64,6 @@ def issue_detection_review(
         )
 
 
-# Removed improvement_review (now handled by unified agent)
-
-
-# Removed critical_review (now handled by unified agent)
-
 
 @mcp.tool()
 def documentation_generate(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> DocumentationOutput:
@@ -98,6 +93,7 @@ def documentation_generate(code_directory: Optional[str] = None, output_director
             metadata={"error": True, "error_message": str(e)}
         )
 
+@mcp.tool()
 def comprehensive_review(
     code_directory: Optional[str] = None,
     output_directory: Optional[str] = None,

@@ -14,9 +14,9 @@ class SemgrepPlugin(StaticAnalysisPlugin):
         if not files:
             return []
         # Semgrep supports JSON output with --json
-        cmd = ["semgrep", "--config=auto", "--json"] + files
+        cmd = ["semgrep", "--config=p/python", "--json"] + files
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True)
             output = json.loads(result.stdout)
             findings = []
             for item in output.get("results", []):
@@ -28,11 +28,6 @@ class SemgrepPlugin(StaticAnalysisPlugin):
                     "tool": "semgrep"
                 })
             return findings
-        except subprocess.CalledProcessError as e:
-            return [{
-                "tool": "semgrep",
-                "error": e.stderr or str(e)
-            }]
         except Exception as e:
             return [{
                 "tool": "semgrep",

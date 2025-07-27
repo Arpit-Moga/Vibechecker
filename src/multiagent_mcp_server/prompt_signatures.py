@@ -5,7 +5,7 @@ class DebtDetectionSignature(dspy.Signature):
     You are a senior code reviewer specializing in technical debt analysis.
     Analyze the provided code for technical debt issues that impact maintainability, scalability, and future development velocity.
 
-    Focus on detecting:
+    Focus on detecting these issues:
     - Large, complex functions that are hard to maintain
     - Duplicated code patterns
     - Poor modularity and tight coupling

@@ -18,23 +18,24 @@ class Orchestrator:
     def register_plugin(self, plugin_cls: Type[StaticAnalysisPlugin]):
         self.plugins.append(plugin_cls())
 
-    def run_plugins(self, files: List[str]) -> List[Dict[str, Any]]:
-        results = []
+    def run_plugins(self, files: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Run all plugins in parallel and return a dict keyed by tool/plugin name.
+        """
+        results_by_plugin = {}
         with ThreadPoolExecutor(max_workers=len(self.plugins)) as executor:
             future_to_plugin = {executor.submit(plugin.run, files, self.config): plugin for plugin in self.plugins}
             for future in as_completed(future_to_plugin):
                 plugin = future_to_plugin[future]
                 try:
                     plugin_results = future.result()
-                    for res in plugin_results:
-                        res["tool"] = plugin.name()
-                    results.extend(plugin_results)
+                    results_by_plugin[plugin.name()] = plugin_results
                 except Exception as e:
-                    results.append({
+                    results_by_plugin[plugin.name()] = [{
                         "tool": plugin.name(),
                         "error": str(e)
-                    })
-        return results
+                    }]
+        return results_by_plugin
 
     def get_supported_languages(self) -> List[str]:
         langs = set()
@@ -52,3 +53,34 @@ class Orchestrator:
                 seen.add(key)
                 deduped.append(r)
         return deduped
+def plugin_results_to_markdown_tables(results_by_plugin: Dict[str, List[Dict[str, Any]]]) -> str:
+    """
+    Generate Markdown tables for each plugin's findings.
+    """
+    md = []
+    for tool, findings in results_by_plugin.items():
+        md.append(f"### {tool.capitalize()} Results")
+        if not findings:
+            md.append("_No findings._\n")
+            continue
+        # Get all possible columns
+        columns = set()
+        for f in findings:
+            columns.update(f.keys())
+        columns = [c for c in ["file", "line", "severity", "message", "error"] if c in columns] + [c for c in columns if c not in {"file", "line", "severity", "message", "error", "tool"}]
+        if not columns:
+            columns = list(findings[0].keys())
+        # Table header
+        md.append("| " + " | ".join(columns) + " |")
+        md.append("|" + "|".join(["---"] * len(columns)) + "|")
+        # Table rows
+        for f in findings:
+            row = []
+            for col in columns:
+                val = f.get(col, "")
+                if isinstance(val, str):
+                    val = val.replace("\n", " ").replace("|", "\\|")
+                row.append(str(val))
+            md.append("| " + " | ".join(row) + " |")
+        md.append("")  # Blank line after table
+    return "\n".join(md)

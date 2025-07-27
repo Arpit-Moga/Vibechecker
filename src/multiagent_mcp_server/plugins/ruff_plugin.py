@@ -16,23 +16,30 @@ class RuffPlugin(StaticAnalysisPlugin):
         # Ruff supports JSON output with --output-format=json
         cmd = ["ruff", "check", "--output-format=json"] + files
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            # Do not use check=True, so we can parse output even if exit code is 1 (lint errors)
+            result = subprocess.run(cmd, capture_output=True, text=True)
             output = json.loads(result.stdout)
             findings = []
-            for item in output.get("diagnostics", []):
-                findings.append({
-                    "file": item.get("filename"),
-                    "line": item.get("location", {}).get("row"),
-                    "severity": "warning",  # Ruff doesn't provide severity, default to warning
-                    "message": item.get("message"),
-                    "tool": "ruff"
-                })
+            # Ruff 0.4.x and later: output is a list of dicts, not a dict with "diagnostics"
+            if isinstance(output, list):
+                for item in output:
+                    findings.append({
+                        "file": item.get("filename"),
+                        "line": item.get("location", {}).get("row"),
+                        "severity": "warning",  # Ruff doesn't provide severity, default to warning
+                        "message": item.get("message"),
+                        "tool": "ruff"
+                    })
+            elif isinstance(output, dict) and "diagnostics" in output:
+                for item in output["diagnostics"]:
+                    findings.append({
+                        "file": item.get("filename"),
+                        "line": item.get("location", {}).get("row"),
+                        "severity": "warning",
+                        "message": item.get("message"),
+                        "tool": "ruff"
+                    })
             return findings
-        except subprocess.CalledProcessError as e:
-            return [{
-                "tool": "ruff",
-                "error": e.stderr or str(e)
-            }]
         except Exception as e:
             return [{
                 "tool": "ruff",

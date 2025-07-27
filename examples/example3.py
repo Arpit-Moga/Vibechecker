@@ -9,7 +9,7 @@ for emp in employees:
         total = 40*emp[2] + (emp[1]-40)*emp[2]*1.5
     else:
         total = emp[1]*emp[2]
-    print("Pay " + emp[0] + " $" + str(total))
+    print("Pay " + emp[0] + " $" + str(total))  # Lol , the boss is idiot, he forgot to add bonus!
 
 
 for emp in employees:
