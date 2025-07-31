@@ -1,0 +1,115 @@
+{
+  "mcpVersion": "2024-11-05",
+  "name": "multiagent-mcp-server",
+  "version": "0.1.0",
+  "description": "Production-ready multi-agent MCP server for automated codebase review, documentation generation, and quality assurance",
+  "author": "Arpit-Moga",
+  "license": "MIT",
+  "homepage": "https://github.com/Arpit-Moga/Vibechecker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Arpit-Moga/Vibechecker.git"
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    },
+    "logging": {
+      "level": "info"
+    }
+  },
+  "tools": [
+    {
+      "name": "issue_detection_review",
+      "description": "Run unified issue detection analysis on the specified code directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code_directory": {
+            "type": "string",
+            "description": "Path to code directory to analyze (default: current working directory)"
+          },
+          "output_directory": {
+            "type": "string", 
+            "description": "Path to write output files (default: code_directory/DOCUMENTATION)"
+          },
+          "output_format": {
+            "type": "string",
+            "enum": ["md", "json"],
+            "default": "md",
+            "description": "Output format - 'md' for markdown or 'json' for JSON"
+          },
+          "scan_mode": {
+            "type": "string",
+            "enum": ["quick", "deep"],
+            "default": "quick", 
+            "description": "Scan mode - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
+          }
+        }
+      }
+    },
+    {
+      "name": "documentation_generate",
+      "description": "Generate comprehensive documentation for the specified code directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code_directory": {
+            "type": "string",
+            "description": "Path to code directory to analyze (default: current working directory)"
+          },
+          "output_directory": {
+            "type": "string",
+            "description": "Path to write output files (default: code_directory/DOCUMENTATION)"
+          }
+        }
+      }
+    },
+    {
+      "name": "comprehensive_review", 
+      "description": "Run all agents on the specified code directory for comprehensive analysis",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code_directory": {
+            "type": "string",
+            "description": "Path to code directory to analyze (default: current working directory)"
+          },
+          "output_directory": {
+            "type": "string",
+            "description": "Path to write output files (default: code_directory/DOCUMENTATION)"
+          },
+          "output_format": {
+            "type": "string",
+            "enum": ["md", "json"],
+            "default": "md",
+            "description": "Output format - 'md' for markdown or 'json' for JSON"
+          },
+          "scan_mode": {
+            "type": "string", 
+            "enum": ["quick", "deep"],
+            "default": "quick",
+            "description": "Scan mode - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "name": "analysis-reports",
+      "description": "Generated analysis reports with issues and recommendations"
+    },
+    {
+      "name": "documentation-files", 
+      "description": "Generated documentation files (README, API docs, etc.)"
+    }
+  ]
+}
