@@ -19,7 +19,7 @@ metadata:
 connections:
   stdio:
     command: "python"
-    args: ["-m", "multiagent_mcp_server"]
+    args: ["run_server.py"]
     env:
       # Optional environment variables for configuration
       CODE_DIRECTORY: "."
@@ -55,65 +55,27 @@ connections:
 
 # Tool definitions
 tools:
-  - name: "debt_review"
-    description: "Analyze technical debt and maintainability issues in the codebase"
+  - name: "issue_detection_review"
+    description: "Run unified issue detection analysis on the specified code directory"
     inputSchema:
       type: "object"
       properties:
         code_directory:
           type: "string"
-          description: "Path to code directory to analyze"
+          description: "Path to code directory to analyze (default: current working directory)"
         output_directory:
           type: "string"
-          description: "Path to write output files"
+          description: "Path to write output files (default: code_directory/DOCUMENTATION)"
         output_format:
           type: "string"
           enum: ["md", "json"]
           default: "md"
+          description: "Output format - 'md' for markdown or 'json' for JSON"
         scan_mode:
           type: "string"
           enum: ["quick", "deep"]
           default: "quick"
-      
-  - name: "improvement_review"
-    description: "Identify code quality improvement opportunities"
-    inputSchema:
-      type: "object"
-      properties:
-        code_directory:
-          type: "string"
-          description: "Path to code directory to analyze"
-        output_directory:
-          type: "string"
-          description: "Path to write output files"
-        output_format:
-          type: "string"
-          enum: ["md", "json"]
-          default: "md"
-        scan_mode:
-          type: "string"
-          enum: ["quick", "deep"]
-          default: "quick"
-
-  - name: "critical_review"
-    description: "Detect critical security and reliability issues"
-    inputSchema:
-      type: "object"
-      properties:
-        code_directory:
-          type: "string"
-          description: "Path to code directory to analyze"
-        output_directory:
-          type: "string"
-          description: "Path to write output files"
-        output_format:
-          type: "string"
-          enum: ["md", "json"]
-          default: "md"
-        scan_mode:
-          type: "string"
-          enum: ["quick", "deep"]
-          default: "quick"
+          description: "Analysis depth - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
 
   - name: "documentation_generate"
     description: "Generate comprehensive project documentation"
@@ -122,20 +84,10 @@ tools:
       properties:
         code_directory:
           type: "string"
-          description: "Path to code directory to analyze"
+          description: "Path to code directory to analyze (default: current working directory)"
         output_directory:
           type: "string"
-          description: "Path to write documentation files"
-        output_format:
-          type: "string"
-          enum: ["md", "json"]
-          default: "md"
-        doc_types:
-          type: "array"
-          items:
-            type: "string"
-            enum: ["API", "ARCHITECTURE", "README", "CONTRIBUTING", "TESTING"]
-          description: "Types of documentation to generate"
+          description: "Path to write documentation files (default: code_directory/DOCUMENTATION)"
 
   - name: "comprehensive_review"
     description: "Run complete multi-agent analysis including all review types"
@@ -144,18 +96,20 @@ tools:
       properties:
         code_directory:
           type: "string"
-          description: "Path to code directory to analyze"
+          description: "Path to code directory to analyze (default: current working directory)"
         output_directory:
           type: "string"
-          description: "Path to write output files"
+          description: "Path to write output files (default: code_directory/DOCUMENTATION)"
         output_format:
           type: "string"
           enum: ["md", "json"]
           default: "md"
+          description: "Output format - 'md' for markdown or 'json' for JSON"
         scan_mode:
           type: "string"
           enum: ["quick", "deep"]
           default: "quick"
+          description: "Analysis depth - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
 
 # Security and validation
 security:

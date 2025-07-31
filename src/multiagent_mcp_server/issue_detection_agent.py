@@ -5,7 +5,7 @@ Detects and classifies all code issues (maintainability, security, performance, 
 in a single pass, tagging each with type and severity.
 """
 
-from src.multiagent_mcp_server.error_utils import get_logger, handle_errors
+from .error_utils import get_logger, handle_errors
 from typing import List, Optional
 from .base_agent import BaseAgent
 from .models import IssueType, Severity, IssueOutput, AgentReport

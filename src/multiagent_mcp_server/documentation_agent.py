@@ -9,7 +9,7 @@ This module provides a robust documentation generation system that:
 - Writes documentation files to DOCUMENTATION folder
 """
 
-from src.multiagent_mcp_server.error_utils import get_logger, handle_errors
+from .error_utils import get_logger, handle_errors
 import os
 import json
 from enum import Enum
