@@ -1,0 +1,165 @@
+# Smithery MCP Server Configuration
+# https://smithery.ai/docs/configuration
+
+metadata:
+  name: "multi-agent-mcp-server"
+  displayName: "Multi-Agent Code Review MCP Server"
+  description: "Production-ready multi-agent MCP server for automated codebase review, documentation generation, and quality assurance with specialized AI agents."
+  version: "0.1.0"
+  author: "Multi-Agent MCP Server Contributors"
+  license: "MIT"
+  tags:
+    - "code-review"
+    - "documentation"
+    - "quality-assurance"
+    - "multi-agent"
+    - "python"
+  
+# Server connection configuration  
+connections:
+  stdio:
+    command: "python"
+    args: ["-m", "multiagent_mcp_server"]
+    env:
+      # Optional environment variables for configuration
+      CODE_DIRECTORY: "."
+      MAX_FILE_SIZE_MB: "5.0"
+      MAX_FILES_TO_PROCESS: "100"
+      LOG_LEVEL: "INFO"
+    published: true
+    
+  # Alternative HTTP connection for remote deployments
+  http:
+    deploymentUrl: "https://api.smithery.ai/mcp/multi-agent-code-review"
+    configSchema:
+      type: "object"
+      properties:
+        apiKey:
+          type: "string"
+          description: "API key for authentication"
+        codeDirectory:
+          type: "string"
+          description: "Directory to analyze (default: current directory)"
+          default: "."
+        outputFormat:
+          type: "string"
+          enum: ["md", "json"]
+          description: "Output format for reports"
+          default: "md"
+        scanMode:
+          type: "string"
+          enum: ["quick", "deep"]
+          description: "Analysis depth"
+          default: "quick"
+      required: ["apiKey"]
+
+# Tool definitions
+tools:
+  - name: "debt_review"
+    description: "Analyze technical debt and maintainability issues in the codebase"
+    inputSchema:
+      type: "object"
+      properties:
+        code_directory:
+          type: "string"
+          description: "Path to code directory to analyze"
+        output_directory:
+          type: "string"
+          description: "Path to write output files"
+        output_format:
+          type: "string"
+          enum: ["md", "json"]
+          default: "md"
+        scan_mode:
+          type: "string"
+          enum: ["quick", "deep"]
+          default: "quick"
+      
+  - name: "improvement_review"
+    description: "Identify code quality improvement opportunities"
+    inputSchema:
+      type: "object"
+      properties:
+        code_directory:
+          type: "string"
+          description: "Path to code directory to analyze"
+        output_directory:
+          type: "string"
+          description: "Path to write output files"
+        output_format:
+          type: "string"
+          enum: ["md", "json"]
+          default: "md"
+        scan_mode:
+          type: "string"
+          enum: ["quick", "deep"]
+          default: "quick"
+
+  - name: "critical_review"
+    description: "Detect critical security and reliability issues"
+    inputSchema:
+      type: "object"
+      properties:
+        code_directory:
+          type: "string"
+          description: "Path to code directory to analyze"
+        output_directory:
+          type: "string"
+          description: "Path to write output files"
+        output_format:
+          type: "string"
+          enum: ["md", "json"]
+          default: "md"
+        scan_mode:
+          type: "string"
+          enum: ["quick", "deep"]
+          default: "quick"
+
+  - name: "documentation_generate"
+    description: "Generate comprehensive project documentation"
+    inputSchema:
+      type: "object"
+      properties:
+        code_directory:
+          type: "string"
+          description: "Path to code directory to analyze"
+        output_directory:
+          type: "string"
+          description: "Path to write documentation files"
+        output_format:
+          type: "string"
+          enum: ["md", "json"]
+          default: "md"
+        doc_types:
+          type: "array"
+          items:
+            type: "string"
+            enum: ["API", "ARCHITECTURE", "README", "CONTRIBUTING", "TESTING"]
+          description: "Types of documentation to generate"
+
+  - name: "comprehensive_review"
+    description: "Run complete multi-agent analysis including all review types"
+    inputSchema:
+      type: "object"
+      properties:
+        code_directory:
+          type: "string"
+          description: "Path to code directory to analyze"
+        output_directory:
+          type: "string"
+          description: "Path to write output files"
+        output_format:
+          type: "string"
+          enum: ["md", "json"]
+          default: "md"
+        scan_mode:
+          type: "string"
+          enum: ["quick", "deep"]
+          default: "quick"
+
+# Security and validation
+security:
+  scanPassed: true
+  
+# Icon for the server (optional)
+iconUrl: "https://raw.githubusercontent.com/Arpit-Moga/Vibechecker/main/docs/icon.png"

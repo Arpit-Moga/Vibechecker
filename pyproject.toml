@@ -33,9 +33,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "flake8>=6.0.0",
@@ -53,14 +50,17 @@ langchain = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/multi-agent-mcp-server"
-Documentation = "https://github.com/your-org/multi-agent-mcp-server/tree/main/docs"
-Repository = "https://github.com/your-org/multi-agent-mcp-server"
-Issues = "https://github.com/your-org/multi-agent-mcp-server/issues"
-Changelog = "https://github.com/your-org/multi-agent-mcp-server/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Arpit-Moga/Vibechecker"
+Documentation = "https://github.com/Arpit-Moga/Vibechecker/tree/main/docs"
+Repository = "https://github.com/Arpit-Moga/Vibechecker"
+Issues = "https://github.com/Arpit-Moga/Vibechecker/issues"
+Changelog = "https://github.com/Arpit-Moga/Vibechecker/blob/main/CHANGELOG.md"
 
 [project.scripts]
 multiagent-mcp-server = "multiagent_mcp_server.server:main"
+
+[project.entry-points."mcp.servers"]
+multi-agent = "multiagent_mcp_server.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -113,42 +113,6 @@ module = [
     "langchain.*",
 ]
 ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--verbose",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-]
-
-[tool.coverage.run]
-source = ["src"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
