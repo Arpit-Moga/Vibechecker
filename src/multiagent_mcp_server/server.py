@@ -5,9 +5,11 @@ This module provides the unified MCP server that exposes all agent tools
 through the Model Context Protocol for seamless AI integration.
 """
 
+import argparse
 import logging
 import os
 import sys
+from datetime import datetime
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -135,7 +137,7 @@ def comprehensive_review(
             "total_issues": total_issues,
             "high_severity_count": high_severity_count,
             "documentation_files": documentation_files,
-            "analysis_timestamp": "2025-01-26T10:25:00Z",  # Will be dynamically set
+            "analysis_timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "code_directory": target_dir
         }
 
@@ -163,18 +165,15 @@ def main():
     Configures logging, validates environment, and starts the MCP server
     with stdio transport for seamless AI integration.
     """
-    import argparse
     
     parser = argparse.ArgumentParser(
         description='Multi-Agent MCP Server - Production-ready code analysis and documentation',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available Tools:
-  debt_review          - Analyze technical debt and maintainability issues
-  improvement_review   - Identify code quality improvement opportunities  
-  critical_review      - Detect critical security and reliability issues
+  issue_detection_review - Run unified issue detection analysis
   documentation_generate - Generate comprehensive project documentation
-  comprehensive_review - Run all analyses for complete code review
+  comprehensive_review   - Run all analyses for complete code review
 
 Environment Variables:
   CODE_DIRECTORY       - Default code directory to analyze
@@ -202,9 +201,7 @@ Environment Variables:
     logger.info("Starting Multi-Agent MCP Server")
     logger.info("="*60)
     logger.info("Available tools:")
-    logger.info("  • debt_review - Technical debt analysis")
-    logger.info("  • improvement_review - Code improvement opportunities")  
-    logger.info("  • critical_review - Critical security and reliability issues")
+    logger.info("  • issue_detection_review - Unified issue detection analysis")
     logger.info("  • documentation_generate - Comprehensive documentation")
     logger.info("  • comprehensive_review - Complete multi-agent analysis")
     logger.info("="*60)
