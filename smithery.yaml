@@ -1,121 +1,33 @@
-# Smithery MCP Server Configuration
-# https://smithery.ai/docs/configuration
+# Smithery configuration file:
+# https://smithery.ai/docs/build/project-config
 
-metadata:
-  name: "multi-agent-mcp-server"
-  displayName: "Multi-Agent Code Review MCP Server"
-  description: "Production-ready multi-agent MCP server for automated codebase review, documentation generation, and quality assurance with specialized AI agents."
-  version: "0.1.0"
-  author: "Multi-Agent MCP Server Contributors"
-  license: "MIT"
-  tags:
-    - "code-review"
-    - "documentation"
-    - "quality-assurance"
-    - "multi-agent"
-    - "python"
-  
-# Server connection configuration  
-connections:
-  stdio:
-    command: "uv"
-    args: ["run", "--frozen", "-q", "python", "-u", "-m", "multiagent_mcp_server.server"]
-    env:
-      # Optional environment variables for configuration
-      CODE_DIRECTORY: "."
-      MAX_FILE_SIZE_MB: "5.0"
-      MAX_FILES_TO_PROCESS: "100"
-      LOG_LEVEL: "INFO"
-      PYTHONUNBUFFERED: "1"
-      PYTHONPATH: "./src"
-    published: true
-    
-  # Alternative HTTP connection for remote deployments
-  http:
-    deploymentUrl: "https://api.smithery.ai/mcp/multi-agent-code-review"
-    configSchema:
-      type: "object"
-      properties:
-        apiKey:
-          type: "string"
-          description: "API key for authentication"
-        codeDirectory:
-          type: "string"
-          description: "Directory to analyze (default: current directory)"
-          default: "."
-        outputFormat:
-          type: "string"
-          enum: ["md", "json"]
-          description: "Output format for reports"
-          default: "md"
-        scanMode:
-          type: "string"
-          enum: ["quick", "deep"]
-          description: "Analysis depth"
-          default: "quick"
-      required: ["apiKey"]
-
-# Tool definitions
-tools:
-  - name: "issue_detection_review"
-    description: "Run unified issue detection analysis on the specified code directory"
-    inputSchema:
-      type: "object"
-      properties:
-        code_directory:
-          type: "string"
-          description: "Path to code directory to analyze (default: current working directory)"
-        output_directory:
-          type: "string"
-          description: "Path to write output files (default: code_directory/DOCUMENTATION)"
-        output_format:
-          type: "string"
-          enum: ["md", "json"]
-          default: "md"
-          description: "Output format - 'md' for markdown or 'json' for JSON"
-        scan_mode:
-          type: "string"
-          enum: ["quick", "deep"]
-          default: "quick"
-          description: "Analysis depth - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
-
-  - name: "documentation_generate"
-    description: "Generate comprehensive project documentation"
-    inputSchema:
-      type: "object"
-      properties:
-        code_directory:
-          type: "string"
-          description: "Path to code directory to analyze (default: current working directory)"
-        output_directory:
-          type: "string"
-          description: "Path to write documentation files (default: code_directory/DOCUMENTATION)"
-
-  - name: "comprehensive_review"
-    description: "Run complete multi-agent analysis including all review types"
-    inputSchema:
-      type: "object"
-      properties:
-        code_directory:
-          type: "string"
-          description: "Path to code directory to analyze (default: current working directory)"
-        output_directory:
-          type: "string"
-          description: "Path to write output files (default: code_directory/DOCUMENTATION)"
-        output_format:
-          type: "string"
-          enum: ["md", "json"]
-          default: "md"
-          description: "Output format - 'md' for markdown or 'json' for JSON"
-        scan_mode:
-          type: "string"
-          enum: ["quick", "deep"]
-          default: "quick"
-          description: "Analysis depth - 'quick' (fastest tools only) or 'deep' (all tools + LLM)"
-
-# Security and validation
-security:
-  scanPassed: true
-  
-# Icon for the server (optional)
-iconUrl: "https://raw.githubusercontent.com/Arpit-Moga/Vibechecker/main/docs/images/logo.png"
+# Start the MCP server over stdio using Python module entry.
+startCommand:
+  type: stdio
+  commandFunction: |
+    (config) => ({
+      command: 'python',
+      args: ['-u', '-m', 'multiagent_mcp_server.server'],
+      env: {
+        PYTHONUNBUFFERED: '1',
+        PYTHONPATH: './src',
+        CODE_DIRECTORY: config.codeDirectory || '.',
+        LOG_LEVEL: config.logLevel || 'INFO',
+      }
+    })
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    properties:
+      codeDirectory:
+        type: string
+        description: Default directory to analyze
+        default: '.'
+      logLevel:
+        type: string
+        enum: [DEBUG, INFO, WARNING, ERROR]
+        default: INFO
+    required: []
+  exampleConfig:
+    codeDirectory: '.'
+    logLevel: INFO
