@@ -22,11 +22,8 @@ from .config import Settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create the MCP server with comprehensive description
-mcp = FastMCP(
-    "Multi-Agent MCP Server",
-    description="Production-ready multi-agent code review and documentation system with specialized agents for technical debt, improvements, critical issues, and documentation generation."
-)
+# Create the MCP server (no description kwarg to support older FastMCP versions)
+mcp = FastMCP("Multi-Agent MCP Server")
 
 
 @mcp.tool()
