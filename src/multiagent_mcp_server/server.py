@@ -10,15 +10,13 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from mcp.server.fastmcp import FastMCP
 
-from .issue_detection_agent import IssueDetectionAgent
-from .documentation_agent import DocumentationAgent
+# NOTE: Avoid importing heavy agent modules at import time to keep startup fast
+# and prevent Smithery/stdio timeouts. We'll lazy-import them inside tool funcs.
 from .config import Settings
-from .models import AgentReport
-from .documentation_agent import DocumentationOutput
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +35,7 @@ def issue_detection_review(
     output_directory: Optional[str] = None,
     output_format: str = "md",
     scan_mode: str = "quick"
-) -> AgentReport:
+) -> Dict[str, Any]:
     """
     Run unified issue detection analysis on the specified code directory.
 
@@ -48,27 +46,32 @@ def issue_detection_review(
         scan_mode: "quick" (fastest tools only) or "deep" (all tools + LLM). Default is "quick".
 
     Returns:
-        AgentReport: Structured report with detected issues and recommendations
+        dict: Structured report with detected issues and recommendations
     """
     try:
         target_dir = code_directory or os.getcwd()
         settings = Settings(code_directory=target_dir)
+        # Lazy import to avoid heavy dependency import at server startup
+        from .issue_detection_agent import IssueDetectionAgent
         agent = IssueDetectionAgent(settings)
         logger.info(f"Running Unified Issue Detection Analysis on {target_dir} with scan_mode={scan_mode}")
-        # Pass scan_mode to orchestrator/agent as needed
-        return agent.run(output_dir=output_directory, output_format=output_format)
+        report = agent.run(output_dir=output_directory, output_format=output_format)
+        # Convert Pydantic model to plain dict for safe MCP serialization
+        return report.model_dump()
 
     except Exception as e:
         logger.error(f"Error in issue_detection_review: {e}")
-        return AgentReport(
-            issues=[],
-            review=f"Issue detection analysis failed: {str(e)}. Please check the code directory path and try again."
-        )
-
+        # Return a plain dict to avoid importing models on error path
+        return {
+            "issues": [],
+            "review": f"Issue detection analysis failed: {str(e)}. Please check the code directory path and try again.",
+            "error": True,
+            "error_message": str(e),
+        }
 
 
 @mcp.tool()
-def documentation_generate(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> DocumentationOutput:
+def documentation_generate(code_directory: Optional[str] = None, output_directory: Optional[str] = None) -> Dict[str, Any]:
     """
     Generate comprehensive documentation for the specified code directory.
     
@@ -77,23 +80,26 @@ def documentation_generate(code_directory: Optional[str] = None, output_director
         output_directory: Path to write output files (default: code_directory/DOCUMENTATION)
         
     Returns:
-        DocumentationOutput: Generated documentation files with quality review and metadata
+        dict: Generated documentation files with quality review and metadata
     """
     try:
         target_dir = code_directory or os.getcwd()
         settings = Settings(code_directory=target_dir)
-        agent = DocumentationAgent(settings)
-        
+        # Lazy import to avoid heavy dependency import at server startup
+        from .documentation_agent import DocumentationAgent
         logger.info(f"Running Documentation Generation on {target_dir}")
-        return agent.generate_documentation(output_dir=output_directory)
+        agent = DocumentationAgent(settings)
+        output = agent.generate_documentation(output_dir=output_directory)
+        return output.model_dump()
         
     except Exception as e:
         logger.error(f"Error in documentation_generate: {e}")
-        return DocumentationOutput(
-            files={},
-            review=f"Documentation generation failed: {str(e)}. Please check the code directory path and try again.",
-            metadata={"error": True, "error_message": str(e)}
-        )
+        return {
+            "files": {},
+            "review": f"Documentation generation failed: {str(e)}. Please check the code directory path and try again.",
+            "metadata": {"error": True, "error_message": str(e)},
+        }
+
 
 @mcp.tool()
 def comprehensive_review(
@@ -122,23 +128,26 @@ def comprehensive_review(
         target_dir = code_directory or os.getcwd()
         logger.info(f"Running comprehensive multi-agent review on {target_dir} with scan_mode={scan_mode}")
 
-        # Run all analyses
+        # Run all analyses (each returns plain dicts)
+        issues_dict = issue_detection_review(target_dir, output_directory, output_format, scan_mode)
+        docs_dict = documentation_generate(target_dir, output_directory)
+
+        # Calculate summary statistics from dicts
+        issues_list = issues_dict.get("issues", []) if isinstance(issues_dict, dict) else []
+        total_issues = len(issues_list)
+        high_severity_count = sum(1 for i in issues_list if str(i.get("severity", "")).lower() == "high")
+        documentation_files = len(docs_dict.get("files", {})) if isinstance(docs_dict, dict) else 0
+
         results = {
-            "issue_detection": issue_detection_review(target_dir, output_directory, output_format, scan_mode),
-            "documentation_analysis": documentation_generate(target_dir, output_directory),
-        }
-
-        # Calculate summary statistics
-        total_issues = len(results["issue_detection"].issues) if hasattr(results["issue_detection"], 'issues') else 0
-        high_severity_count = len([i for i in getattr(results["issue_detection"], 'issues', []) if getattr(i, 'severity', None) == "high"])
-        documentation_files = len(results["documentation_analysis"].files) if hasattr(results["documentation_analysis"], 'files') else 0
-
-        results["summary"] = {
-            "total_issues": total_issues,
-            "high_severity_count": high_severity_count,
-            "documentation_files": documentation_files,
-            "analysis_timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "code_directory": target_dir
+            "issue_detection": issues_dict,
+            "documentation_analysis": docs_dict,
+            "summary": {
+                "total_issues": total_issues,
+                "high_severity_count": high_severity_count,
+                "documentation_files": documentation_files,
+                "analysis_timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "code_directory": target_dir,
+            },
         }
 
         logger.info(f"Comprehensive review completed. Total issues found: {total_issues}")
@@ -152,8 +161,9 @@ def comprehensive_review(
                 "total_issues": 0,
                 "high_severity_count": 0,
                 "documentation_files": 0,
-                "error": True
-            }
+                "error": True,
+                "error_message": str(e),
+            },
         }
 
 

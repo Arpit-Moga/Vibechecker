@@ -19,13 +19,14 @@ metadata:
 connections:
   stdio:
     command: "python"
-    args: ["run_server.py"]
+    args: ["-u", "run_server.py"]
     env:
       # Optional environment variables for configuration
       CODE_DIRECTORY: "."
       MAX_FILE_SIZE_MB: "5.0"
       MAX_FILES_TO_PROCESS: "100"
       LOG_LEVEL: "INFO"
+      PYTHONUNBUFFERED: "1"
     published: true
     
   # Alternative HTTP connection for remote deployments
