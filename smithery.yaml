@@ -18,8 +18,8 @@ metadata:
 # Server connection configuration  
 connections:
   stdio:
-    command: "python"
-    args: ["-u", "run_server.py"]
+    command: "uv"
+    args: ["run", "--frozen", "-q", "python", "-u", "-m", "multiagent_mcp_server.server"]
     env:
       # Optional environment variables for configuration
       CODE_DIRECTORY: "."
@@ -27,6 +27,7 @@ connections:
       MAX_FILES_TO_PROCESS: "100"
       LOG_LEVEL: "INFO"
       PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "./src"
     published: true
     
   # Alternative HTTP connection for remote deployments
@@ -117,4 +118,4 @@ security:
   scanPassed: true
   
 # Icon for the server (optional)
-iconUrl: "https://raw.githubusercontent.com/Arpit-Moga/Vibechecker/main/docs/icon.png"
+iconUrl: "https://raw.githubusercontent.com/Arpit-Moga/Vibechecker/main/docs/images/logo.png"
