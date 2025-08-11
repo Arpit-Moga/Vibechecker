@@ -1,7 +1,8 @@
 # Smithery configuration file:
 # https://smithery.ai/docs/build/project-config
 
-# Start the MCP server over stdio using Python module entry.
+runtime: container
+
 startCommand:
   type: stdio
   commandFunction: |
@@ -10,7 +11,7 @@ startCommand:
       args: ['-u', '-m', 'multiagent_mcp_server.server'],
       env: {
         PYTHONUNBUFFERED: '1',
-        PYTHONPATH: './src',
+        PYTHONPATH: '/app/src',
         CODE_DIRECTORY: config.codeDirectory || '.',
         LOG_LEVEL: config.logLevel || 'INFO',
       }
