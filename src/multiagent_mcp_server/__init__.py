@@ -8,15 +8,16 @@ for automated code review, documentation generation, and quality assurance.
 __version__ = "0.1.0"
 __author__ = "Multi-Agent MCP Server Contributors"
 
-from .server import mcp, main
+# Intentionally do NOT import server (mcp, main) here to avoid side effects and double-import warnings
+# from .server import mcp, main
 from .models import AgentReport, DocumentationOutput, IssueOutput
 from .config import Settings
 
 __all__ = [
-    "mcp",
-    "main", 
+    # "mcp",
+    # "main",
     "AgentReport",
-    "DocumentationOutput", 
+    "DocumentationOutput",
     "IssueOutput",
     "Settings",
 ]
