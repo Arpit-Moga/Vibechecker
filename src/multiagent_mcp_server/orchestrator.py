@@ -1,7 +1,7 @@
 import os
 import importlib
 import pkgutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from typing import List, Dict, Any, Optional, Type
 
 from .plugin_interface import StaticAnalysisPlugin
@@ -21,20 +21,36 @@ class Orchestrator:
     def run_plugins(self, files: List[str]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Run all plugins in parallel and return a dict keyed by tool/plugin name.
+        Applies a per-run timeout to prevent hangs in constrained environments.
         """
-        results_by_plugin = {}
+        results_by_plugin: Dict[str, List[Dict[str, Any]]] = {}
+        if not self.plugins:
+            return results_by_plugin
+
+        timeout_sec = float(self.config.get("plugin_timeout_sec", 20))
         with ThreadPoolExecutor(max_workers=len(self.plugins)) as executor:
             future_to_plugin = {executor.submit(plugin.run, files, self.config): plugin for plugin in self.plugins}
-            for future in as_completed(future_to_plugin):
-                plugin = future_to_plugin[future]
-                try:
-                    plugin_results = future.result()
-                    results_by_plugin[plugin.name()] = plugin_results
-                except Exception as e:
-                    results_by_plugin[plugin.name()] = [{
-                        "tool": plugin.name(),
-                        "error": str(e)
-                    }]
+            unfinished: Dict[Any, Any] = {}
+            try:
+                for future in as_completed(future_to_plugin, timeout=timeout_sec):
+                    plugin = future_to_plugin[future]
+                    try:
+                        plugin_results = future.result()
+                        results_by_plugin[plugin.name()] = plugin_results
+                    except Exception as e:
+                        results_by_plugin[plugin.name()] = [{
+                            "tool": plugin.name(),
+                            "error": str(e)
+                        }]
+            except TimeoutError:
+                # Mark any unfinished plugins as timed out
+                for future, plugin in future_to_plugin.items():
+                    if not future.done():
+                        future.cancel()
+                        results_by_plugin[plugin.name()] = [{
+                            "tool": plugin.name(),
+                            "error": f"timeout after {timeout_sec}s"
+                        }]
         return results_by_plugin
 
     def get_supported_languages(self) -> List[str]:
